@@ -306,68 +306,26 @@
         </div>
 
         <!-- 2. 語音動態錄音面板 (Verbalize Panel) -->
-        <div id="voice-panel" class="absolute inset-0 bg-[#352900]/95 z-40 hidden flex-col p-6 text-[#FBFDF7] overflow-y-auto">
-            <div class="flex justify-between items-center">
-                <span class="text-xs font-bold tracking-widest text-[#FBFDF7]/50 uppercase">🎙️ 語音偵測中...</span>
+        <div id="voice-panel" class="absolute inset-0 bg-[#352900]/95 z-40 hidden flex-col p-5 text-[#FBFDF7] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-xs font-bold tracking-widist text-[#FBFDF7]/50 uppercase">語音/文字記帳</span>
                 <button onclick="closeVoicePanel()" class="w-8 h-8 rounded-full bg-white/10 text-white flex justify-center items-center"><i class="fa-solid fa-xmark text-sm"></i></button>
             </div>
-
-            <div class="flex flex-col items-center justify-center my-auto space-y-6">
-                <!-- 動態聲音波形模擬 -->
-                <div class="flex items-center space-x-2 h-16">
-                    <div class="w-1.5 bg-[#F5D6FF] rounded-full animate-bounce h-12" style="animation-delay: 0.1s"></div>
-                    <div class="w-1.5 bg-[#AEB7FF] rounded-full animate-bounce h-16" style="animation-delay: 0.3s"></div>
-                    <div class="w-1.5 bg-[#FFBC54] rounded-full animate-bounce h-8" style="animation-delay: 0.2s"></div>
-                    <div class="w-1.5 bg-[#C2B500] rounded-full animate-bounce h-14" style="animation-delay: 0.4s"></div>
-                    <div class="w-1.5 bg-[#F5D6FF] rounded-full animate-bounce h-6" style="animation-delay: 0.5s"></div>
-                </div>
-
-                <div class="text-center px-4 space-y-2">
-                    <p class="text-lg font-medium" id="voice-interim-text">請大聲說出，例如：</p>
-                    <!-- iOS/Keyboard dictation fallback -->
-                    <div id="voice-type-fallback" style="display:none;width:100%">
-                        <p class="text-xs opacity-50 mb-2">語音不支援？喺下面打字或者用鍵盤咪高峰</p>
-                        <input type="text" id="voice-type-input" placeholder="喺度打字，或者點鍵盤個🎤咪" style="width:100%;padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-size:0.9rem;text-align:center;outline:none;font-family:inherit">
-                        <button onclick="parseTypedVoice()" style="width:100%;margin-top:8px;padding:10px;border-radius:14px;border:none;background:#F5D6FF;color:#352900;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:inherit">確認輸入</button>
-                    </div>
-                    <button id="btn-vstop" onclick="stopVoiceManual()" class="w-full py-2.5 rounded-xl font-bold text-xs bg-[#D0A198] text-white mb-3 hidden">點擊停止聆聽</button>
-                    <p class="text-sm opacity-60 italic" id="voice-example">「用咗五千蚊買 Daiso 化妝品」</p>
-                </div>
+            <p class="text-center text-xs opacity-50 mb-3">點擊輸入框，再點鍵盤 🎤 咪講嘢，或直接打字</p>
+            <input type="text" id="voice-type-input" placeholder="點鍵盤 🎤 咪，或喺度打字" style="width:100%;padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);color:#fff;font-size:0.95rem;text-align:center;outline:none;font-family:inherit;margin-bottom:6px">
+            <button onclick="parseTypedVoice()" style="width:100%;padding:12px;border-radius:14px;border:none;background:#F5D6FF;color:#352900;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;margin-bottom:10px">確認輸入</button>
+            <div class="grid grid-cols-2 gap-2 text-[#352900] text-xs font-semibold mb-4">
+                <button onclick="quickVoiceInput('用咗五千元買化妝品')" class="p-2.5 rounded-xl bg-[#F5D6FF] text-left active:scale-95 transition-transform">用咗五千元</button>
+                <button onclick="quickVoiceInput('買咗千五蚊護膚品')" class="p-2.5 rounded-xl bg-[#AEB7FF] text-left active:scale-95 transition-transform">千五蚊護膚品</button>
+                <button onclick="quickVoiceInput('食咗三百蚊拉麵')" class="p-2.5 rounded-xl bg-[#FFBC54] text-left active:scale-95 transition-transform">三百蚊拉麵</button>
+                <button onclick="quickVoiceInput('搭的士八十蚊')" class="p-2.5 rounded-xl bg-[#C2B500] text-left active:scale-95 transition-transform">的士八十蚊</button>
             </div>
-
-            <!-- 提供快捷模擬選項，方便調試 -->
-            <div id="voice-quick-actions" class="space-y-2.5">
-                <p class="text-[10px] opacity-40 font-bold uppercase tracking-wider text-center">現場太亂？點擊下方快捷模擬：</p>
-                <div class="grid grid-cols-2 gap-2 text-[#352900] text-xs font-semibold">
-                    <button onclick="simulateVoice('用咗五千元去買 Daiso 化妝品')" class="p-2.5 rounded-xl bg-[#F5D6FF] text-left hover:scale-98 transition-transform">廣東話：「用咗五千元」</button>
-                    <button onclick="simulateVoice('買咗千五蚊護膚品')" class="p-2.5 rounded-xl bg-[#AEB7FF] text-left hover:scale-98 transition-transform">廣東話口語：「千五蚊」</button>
-                </div>
-            </div>
-
-            <!-- 語音辨識結果編輯面板 -->
-            <div id="voice-result-panel" class="space-y-3 hidden">
-                <div class="bg-white/10 rounded-2xl p-3 text-center">
-                    <p class="text-[10px] opacity-50 uppercase tracking-wider">辨識文字</p>
-                    <p class="text-sm font-medium mt-1" id="voice-raw-text"></p>
-                </div>
-                <div class="bg-white rounded-2xl p-3 text-[#352900]">
-                    <label class="text-[10px] font-bold opacity-40 uppercase block mb-1">金額</label>
-                    <input type="number" id="voice-amt-input" class="w-full text-lg font-extrabold bg-transparent outline-none" placeholder="0">
-                </div>
-                <div class="bg-white rounded-2xl p-3 text-[#352900]">
-                    <label class="text-[10px] font-bold opacity-40 uppercase block mb-1">錢包</label>
-                    <select id="voice-wallet-sel" class="w-full text-sm font-bold bg-transparent outline-none"></select>
-                </div>
-                <div class="bg-white rounded-2xl p-3 text-[#352900]">
-                    <label class="text-[10px] font-bold opacity-40 uppercase block mb-1">備註</label>
-                    <input type="text" id="voice-memo-input" class="w-full text-sm font-semibold bg-transparent outline-none" placeholder="消費描述">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="confirmVoiceTx('out')" class="py-2.5 rounded-xl font-bold text-xs bg-[#D0A198] text-white">記支出</button>
-                    <button onclick="confirmVoiceTx('in')" class="py-2.5 rounded-xl font-bold text-xs bg-[#D2DDD4] text-[#352900]">記收入</button>
-                </div>
-                <button onclick="resetVoicePanel()" class="w-full py-2 rounded-xl font-bold text-[10px] text-white/40">重新聆聽</button>
-            </div>
+            <!-- Always visible result area -->
+            <div class="bg-white/10 rounded-2xl p-3 text-center mb-3"><p class="text-[10px] opacity-50 uppercase">辨識文字</p><p class="text-sm font-medium mt-1" id="voice-raw-text">-</p></div>
+            <div class="bg-white rounded-2xl p-3 text-[#352900] mb-2"><label class="text-[10px] font-bold opacity-40 uppercase block mb-1">金額</label><input type="number" id="voice-amt-input" class="w-full text-lg font-extrabold bg-transparent outline-none" placeholder="0"></div>
+            <div class="bg-white rounded-2xl p-3 text-[#352900] mb-2"><label class="text-[10px] font-bold opacity-40 uppercase block mb-1">錢包</label><select id="voice-wallet-sel" class="w-full text-sm font-bold bg-transparent outline-none"></select></div>
+            <div class="bg-white rounded-2xl p-3 text-[#352900] mb-3"><label class="text-[10px] font-bold opacity-40 uppercase block mb-1">備註</label><input type="text" id="voice-memo-input" class="w-full text-sm font-semibold bg-transparent outline-none" placeholder="消費描述"></div>
+            <div class="grid grid-cols-2 gap-2"><button onclick="confirmVoiceTx('out')" class="py-2.5 rounded-xl font-bold text-xs bg-[#D0A198] text-white">記支出</button><button onclick="confirmVoiceTx('in')" class="py-2.5 rounded-xl font-bold text-xs bg-[#D2DDD4] text-[#352900]">記收入</button></div>
         </div>
 
         <!-- 3. 收據自動掃描與相機辨識面板 (OCR Receipt Scanner) -->
@@ -1265,10 +1223,8 @@
         function openVoicePanel() {
             document.getElementById('voice-panel').classList.remove('hidden');
             document.getElementById('voice-panel').classList.add('flex');
-            document.getElementById('voice-result-panel').classList.add('hidden');
-            document.getElementById('voice-type-fallback').style.display = 'block';
-            document.getElementById('voice-interim-text').innerText = '點擊輸入框，再點鍵盤 🎤 咪講嘢';
             document.getElementById('voice-type-input').value = '';
+            updateVoiceWallet();
             setTimeout(function(){ document.getElementById('voice-type-input').focus(); }, 400);
         }
 
@@ -1321,10 +1277,6 @@
         }
 
         function showVoiceResult(rawText) {
-            document.getElementById('voice-quick-actions').classList.add('hidden');
-            document.getElementById('voice-type-fallback').style.display = 'none';
-            document.getElementById('voice-interim-text').style.display = 'none';
-            document.getElementById('voice-result-panel').classList.remove('hidden');
             document.getElementById('voice-raw-text').textContent = '"' + rawText + '"';
             var amount = parseChineseAndArabicNumbers(rawText);
             document.getElementById('voice-amt-input').value = amount || '';
