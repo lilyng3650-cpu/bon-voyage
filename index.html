@@ -314,12 +314,7 @@
             <p class="text-center text-xs opacity-50 mb-3">點擊輸入框，再點鍵盤 🎤 咪講嘢，或直接打字</p>
             <input type="text" id="voice-type-input" placeholder="點鍵盤 🎤 咪，或喺度打字" style="width:100%;padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);color:#fff;font-size:0.95rem;text-align:center;outline:none;font-family:inherit;margin-bottom:6px">
             <button onclick="parseTypedVoice()" style="width:100%;padding:12px;border-radius:14px;border:none;background:#F5D6FF;color:#352900;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;margin-bottom:10px">確認輸入</button>
-            <div class="grid grid-cols-2 gap-2 text-[#352900] text-xs font-semibold mb-4">
-                <button onclick="quickVoiceInput('用咗五千元買化妝品')" class="p-2.5 rounded-xl bg-[#F5D6FF] text-left active:scale-95 transition-transform">用咗五千元</button>
-                <button onclick="quickVoiceInput('買咗千五蚊護膚品')" class="p-2.5 rounded-xl bg-[#AEB7FF] text-left active:scale-95 transition-transform">千五蚊護膚品</button>
-                <button onclick="quickVoiceInput('食咗三百蚊拉麵')" class="p-2.5 rounded-xl bg-[#FFBC54] text-left active:scale-95 transition-transform">三百蚊拉麵</button>
-                <button onclick="quickVoiceInput('搭的士八十蚊')" class="p-2.5 rounded-xl bg-[#C2B500] text-left active:scale-95 transition-transform">的士八十蚊</button>
-            </div>
+            
             <!-- Always visible result area -->
             <div class="bg-white/10 rounded-2xl p-3 text-center mb-3"><p class="text-[10px] opacity-50 uppercase">辨識文字</p><p class="text-sm font-medium mt-1" id="voice-raw-text">-</p></div>
             <div class="bg-white rounded-2xl p-3 text-[#352900] mb-2"><label class="text-[10px] font-bold opacity-40 uppercase block mb-1">金額</label><input type="number" id="voice-amt-input" class="w-full text-lg font-extrabold bg-transparent outline-none" placeholder="0"></div>
