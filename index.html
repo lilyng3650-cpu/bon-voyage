@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Booked Travel Spend - Premium Preview</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 圖標 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        /* 註冊指定六大官方色號作為 CSS 變數 */
+        :root {
+            --color-bg: #FBFDF7;        /* 柔和奶油白 */
+            --color-dark: #352900;      /* 深朱古力黑石墨色 */
+            --color-purple: #F5D6FF;    /* 淺薰衣草粉紫 */
+            --color-orange: #FFBC54;    /* 暖調落日橙黃 */
+            --color-blue: #AEB7FF;      /* 冰淇淋淺藍 */
+            --color-green: #C2B500;     /* 復古橄欖芥末綠 */
+        }
+
+        body {
+            background-image: url('bon-voyage-bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-color: #1a1503; /* 外殼暗背景，突出模擬器 */
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* 麵包超人底部野餐場景 Wallpaper (淡出漸變 blend 奶油白) */
+        .anpanman-bottom-bg {
+            background-image: linear-gradient(rgba(251, 253, 247, 0.3), rgba(251, 253, 247, 0.3)), url('bon-voyage-bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        /* 髮絲級微弱邊框 (Hairline Border) */
+        .hairline-border {
+            border: 1px solid rgba(53, 41, 0, 0.08);
+        }
+
+        /* 隱藏滾動條 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* 手勢引導呼吸動畫 */
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 15px rgba(53, 41, 0, 0.15); }
+        }
+        .breathe-active {
+            animation: breathe 1.5s infinite ease-in-out;
+        }
+
+        /* 計算機滑出動畫 */
+        .calculator-slide {
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* 掃描線動畫 */
+        @keyframes scan {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+        .scan-line {
+.txi{position:relative;touch-action:pan-y;cursor:grab}
+.txi-del{position:absolute;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:flex-end;padding-right:12px;border-radius:12px;background:#D0A198;color:#fff;font-size:10px;font-weight:700;z-index:0;width:0;overflow:hidden;transition:width 0.3s}
+.chart-wrap{position:relative;width:100%;height:150px;margin:8px 0}
+.chart-empty{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;color:rgba(53,41,0,0.35);font-weight:700}
+            animation: scan 2s infinite linear;
+        }
+    
+        /* Welcome screen dismiss animation */
+        .welcome-dismiss {
+            animation: welcomeOut 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes welcomeOut {
+            0% { opacity: 1; transform: scale(1); filter: blur(0); }
+            100% { opacity: 0; transform: scale(1.08); filter: blur(4px); }
+        }
+
+    
+        /* All buttons subtle press effect */
+        button, [onclick], .cursor-pointer {
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease, box-shadow 0.15s ease;
+        }
+        button:active, [onclick]:active, .cursor-pointer:active {
+            transform: scale(0.94) !important;
+        }
+        #gesture-pad button:active, #gesture-pad .cursor-pointer:active,
+        #hold-trigger:active, #gesture-pad [onclick]:active {
+            transform: none !important;
+        }
+
+    
+        .txi-del-bg {
+            position: absolute; right: 0; top: 0; bottom: 0;
+            display: flex; align-items: center; justify-content: flex-end;
+            padding-right: 14px; border-radius: 12px;
+            background: #D0A198; color: #fff; font-size: 10px; font-weight: 700;
+            width: 0; overflow: hidden; transition: width 0.3s; z-index: 0;
+        }
+</style>
+</head>
+<body class="flex justify-center items-center min-h-screen p-0">
+
+    
+    <!-- Welcome Splash Screen -->
+    <div id="welcome-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#FBFDF7] overflow-hidden">
+        <div class="text-center px-8 space-y-5">
+            <div style="font-size:4rem">🍮</div>
+            <h1 style="font-size:2rem;font-weight:900;color:#352900">Bon Voyage</h1>
+            <p style="font-size:0.85rem;color:rgba(53,41,0,0.5)">Your travel spending companion</p>
+            <div style="padding-top:20px">
+                <input id="username-input" type="text" placeholder="輸入你的名稱" style="width:100%;max-width:260px;padding:14px 18px;border-radius:16px;border:1px solid rgba(53,41,0,0.15);font-size:0.95rem;text-align:center;outline:none;background:#fff;font-family:inherit" autocomplete="off">
+            </div>
+            <button onclick="startApp()" style="margin-top:8px;padding:14px 40px;background:#352900;color:#FBFDF7;border:none;border-radius:30px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit">Get Started</button>
+        </div>
+    </div>
+
+    <!-- 模擬高檔 iPhone 15 Pro 框體 -->
+    <div class="relative w-full max-w-[400px] h-[100dvh] md:h-[860px] anpanman-bottom-bg md:rounded-[52px] md:shadow-[0_0_0_12px_#352900,0_24px_70px_rgba(53,41,0,0.35)] overflow-hidden flex flex-col justify-between select-none" style="border-radius:0;box-shadow:none">
+        
+
+        <!-- 頂部區塊 (狀態與餘額) -->
+        <div class="w-full pt-6 md:pt-14 px-4 md:px-6 z-10">
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-[10px] font-bold tracking-widest text-[#352900]/40 uppercase">總可用資金</span>
+                <button onclick="if(confirm('確定清除所有記錄？')){localStorage.clear();location.reload()}" class="text-xs px-2 py-1 rounded-full border border-[#352900]/10 hover:bg-[#352900]/5 transition-colors font-medium text-[#352900] mr-1" title="清除所有資料">🗑</button>
+                <button onclick="openWalletModal()" class="text-xs px-2.5 py-1 rounded-full border border-[#352900]/10 hover:bg-[#352900]/5 transition-colors font-medium text-[#352900]">
+                    <i class="fa-solid fa-wallet mr-1"></i>管理錢包
+                </button>
+            </div>
+            
+            <!-- 核心大金額顯示 (極粗 font-weight: 800) -->
+            <div class="text-4xl font-extrabold tracking-tight text-[#352900] mb-5 flex items-baseline" style="text-shadow: 0 1px 4px rgba(255,255,255,0.7);">
+                
+                <span id="total-balance">0</span>
+                <span class="text-lg opacity-40 font-normal">.00</span>
+            </div>
+
+            <!-- 多錢包並排切換 (採用 Booked 色號配色) -->
+            <div id="wallets-container" class="grid grid-cols-3 gap-2 md:gap-2.5">
+                <!-- 動態加載 -->
+            </div>
+        </div>
+
+        <!-- 中間手勢核心操控盤 -->
+        <div id="gesture-pad" class="relative w-full h-56 md:h-72 flex justify-center items-center my-auto z-10">
+            
+            <!-- 手勢引導背景虛擬連線 -->
+            <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-20" xmlns="http://www.w3.org/2000/svg">
+                <path id="guide-line-left" d="M 200 144 L 80 56" stroke="#352900" stroke-width="2" stroke-dasharray="5 5" class="hidden" />
+                <path id="guide-line-right" d="M 200 144 L 320 56" stroke="#352900" stroke-width="2" stroke-dasharray="5 5" class="hidden" />
+            </svg>
+
+            <!-- 隱藏手勢引導按鈕：左上方 (手打計算機) -->
+            <div id="target-calc" class="absolute top-6 left-10 w-16 h-16 rounded-full bg-[#AEB7FF] border border-[#352900]/10 flex flex-col justify-center items-center scale-90 opacity-0 transition-all duration-300 shadow-sm">
+                <i class="fa-solid fa-calculator text-[#352900] text-lg"></i>
+                <span class="text-[9px] font-bold text-[#352900] mt-0.5">滑入計算機</span>
+            </div>
+
+            <!-- 隱藏手勢引導按鈕：右上方 (語音Verbalize) -->
+            <div id="target-voice" class="absolute top-6 right-10 w-16 h-16 rounded-full bg-[#F5D6FF] border border-[#352900]/10 flex flex-col justify-center items-center scale-90 opacity-0 transition-all duration-300 shadow-sm">
+                <i class="fa-solid fa-microphone text-[#352900] text-lg"></i>
+                <span class="text-[9px] font-bold text-[#352900] mt-0.5">滑入語音</span>
+            </div>
+
+            <!-- 手勢操作提示文本 -->
+            <div id="gesture-tip" class="absolute bottom-2 text-center w-full px-8 transition-opacity duration-300">
+                <p class="text-xs font-semibold text-[#352900]/70">長按中央HOLD按鈕開始</p>
+                <p class="text-[10px] text-[#352900]/40 mt-0.5">左上滑動手打 ‧ 右上滑動語音</p>
+            </div>
+
+            <!-- 核心 HOLD 大按鈕 -->
+            <div id="hold-trigger" 
+                 class="w-28 h-28 rounded-full bg-[#FBFDF7] border-4 border-[#352900] shadow-[0_12px_45px_rgba(53,41,0,0.12)] flex justify-center items-center relative z-20 cursor-pointer transition-all duration-200 select-none">
+                <div class="w-22 h-22 rounded-full bg-[#352900] flex flex-col justify-center items-center text-[#FBFDF7] shadow-inner transition-transform duration-200">
+                    <i class="fa-solid fa-fingerprint text-2xl mb-1"></i>
+                    <span class="text-[10px] font-bold tracking-widest uppercase">HOLD</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 底部區塊 (拍照影單、日曆與歷史活動) - 保持極簡高透，露出背景野餐圖 -->
+        <div class="w-full px-6 pb-4 md:pb-6 space-y-3 md:space-y-4 z-10">
+            
+            <!-- 雙功能快速入口卡片 -->
+            <div class="grid grid-cols-2 gap-3">
+                <!-- 拍照/選收據卡片 (#C2B500 芥末綠) -->
+                <div onclick="triggerOCR()" class="p-3 md:p-3.5 rounded-[20px] md:rounded-[24px] bg-[#C2B500] text-[#352900] flex flex-col justify-between h-20 md:h-24 cursor-pointer hover:opacity-95 active:scale-98 transition-all hairline-border shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <span class="w-9 h-9 rounded-xl bg-white/30 flex justify-center items-center text-sm"><i class="fa-solid fa-camera"></i></span>
+                        <i class="fa-solid fa-chevron-right text-[10px] opacity-40"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-extrabold tracking-tight">影張 Receipt</p>
+                        <p class="text-[9px] opacity-60">自動辨識收據金額</p>
+                    </div>
+                </div>
+
+                <!-- 日曆對帳卡片 (#AEB7FF 藍) -->
+                <div onclick="toggleCalendarView()" class="p-3 md:p-3.5 rounded-[20px] md:rounded-[24px] bg-[#AEB7FF] text-[#352900] flex flex-col justify-between h-20 md:h-24 cursor-pointer hover:opacity-95 active:scale-98 transition-all hairline-border shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <span class="w-9 h-9 rounded-xl bg-white/30 flex justify-center items-center text-sm"><i class="fa-solid fa-calendar-days"></i></span>
+                        <i class="fa-solid fa-chevron-right text-[10px] opacity-40"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-extrabold tracking-tight">日曆對帳看板</p>
+                        <p class="text-[9px] opacity-60">點擊日期看當日花費</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 歷史活動精緻卡片 (加強毛玻璃/透光感，讓底部麵包超人若隱若現) -->
+            <div class="bg-white/70 backdrop-blur-md rounded-[24px] p-4.5 hairline-border shadow-[0_6px_20px_rgba(53,41,0,0.02)] border border-[#352900]/10">
+                <div class="flex justify-between items-center mb-3.5">
+                    <span id="activity-title" class="text-[10px] font-bold tracking-widest text-[#352900]/40 uppercase">近期流水分佈</span>
+                    <span id="activity-date" class="text-[10px] text-[#352900]/50 font-bold">今天</span>
+                </div>
+
+                <div id="history-list" class="space-y-3 overflow-y-auto no-scrollbar" style="height:130px">
+                    <!-- 歷史賬目 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 虛擬底層返回條 -->
+        <div class="w-32 h-1.5 bg-[#352900]/15 rounded-full mx-auto mb-2 z-10 md:block hidden"></div>
+
+        <!-- ==================== MODAL OVERLAYS (功能面板層) ==================== -->
+
+        <!-- 1. 仿 iCourse 極簡手打計算機彈出層 -->
+        <div id="calc-panel" class="absolute inset-x-0 bottom-0 h-[68%] bg-[#FBFDF7] rounded-t-[40px] shadow-[0_-15px_50px_rgba(53,41,0,0.15)] z-40 transform translate-y-full calculator-slide flex flex-col justify-between p-6 hairline-border">
+            <div class="flex justify-between items-center pb-2">
+                <span class="text-xs font-bold text-[#352900]" style="text-shadow:0 1px 2px rgba(255,255,255,0.5)/40 uppercase tracking-wider">🧮 手打計算機</span>
+                <button onclick="closeCalculator()" class="w-8 h-8 rounded-full bg-[#352900]/5 text-[#352900] flex justify-center items-center"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+
+            <!-- 計算機顯示螢幕 -->
+            <div class="bg-white rounded-2xl p-4 text-right hairline-border mb-3">
+                <div class="text-[10px] text-[#352900]/40 font-semibold" id="calc-wallet-label">目前記錄至: WowPass</div>
+                <div class="text-3xl font-extrabold tracking-tight text-[#352900] mt-1" id="calc-display">0</div>
+                <div class="text-xs text-[#352900]/60 mt-1" id="calc-memo">無備註</div>
+            </div>
+
+            <!-- 收支切換按鈕 -->
+            <div class="grid grid-cols-2 gap-2 mb-3">
+                <button id="calc-type-out" onclick="setCalcType('out')" class="py-2 rounded-xl font-bold text-xs bg-[#FFBC54] text-[#352900] border border-[#352900]/10">支出 (-)</button>
+                <button id="calc-type-in" onclick="setCalcType('in')" class="py-2 rounded-xl font-bold text-xs bg-white text-[#352900]/40 border border-[#352900]/5">收入 (+)</button>
+            </div>
+
+            <!-- 計算機按鍵網格 -->
+            <div class="grid grid-cols-4 gap-2 text-[#352900] font-bold">
+                <button onclick="pressCalcKey('7')" class="aspect-square bg-white rounded-xl flex justify-center items-center hover:bg-[#352900]/5 active:scale-95 transition-all text-lg hairline-border">7</button>
+                <button onclick="pressCalcKey('8')" class="aspect-square bg-white rounded-xl flex justify-center items-center hover:bg-[#352900]/5 active:scale-95 transition-all text-lg hairline-border">8</button>
+                <button onclick="pressCalcKey('9')" class="aspect-square bg-white rounded-xl flex justify-center items-center hover:bg-[#352900]/5 active:scale-95 transition-all text-lg hairline-border">9</button>
+                <button onclick="pressCalcKey('C')" class="aspect-square bg-[#FFBC54]/40 rounded-xl flex justify-center items-center hover:bg-[#FFBC54]/60 active:scale-95 transition-all text-base hairline-border">C</button>
+
+                <button onclick="pressCalcKey('4')" class="aspect-square bg-white rounded-xl flex justify-center items-center hover:bg-[#352900]/5 active:scale-95 transition-all text-lg hairline-border">4</button>
+                <button onclick="pressCalcKey('5')" class="aspect-square bg-white rounded-xl flex justify-center items-center hover:bg-[#352900]/5 active:scale-95 transition-all text-lg hairline-border">5</button>
+                <button onclick="pressCalcKey('6')" class="aspect-square bg-white rounded-xl flex justify-center items-center hover:bg-[#352900]/5 active:scale-95 transition-all text-lg hairline-border">6</button>
+                <button onclick="editCalcMemo()" class="aspect-square bg-[#AEB7FF]/30 rounded-xl flex flex-col justify-center items-center hover:bg-[#AEB7FF]/50 active:scale-95 transition-all text-[11px] hairline-border"><i class="fa-regular fa-comment-dots mb-0.5 text-xs"></i>備註</button>
+
+                <button onclick="pressCalcKey('1')" class="aspect-square bg-white rounded-xl flex justify-center items-center hover:bg-[#352900]/5 active:scale-95 transition-all text-lg hairline-border">1</button>
+                <button onclick="pressCalcKey('2')" class="aspect-square bg-white rounded-xl flex justify-center items-center hover:bg-[#352900]/5 active:scale-95 transition-all text-lg hairline-border">2</button>
+                <button onclick="pressCalcKey('3')" class="aspect-square bg-white rounded-xl flex justify-center items-center hover:bg-[#352900]/5 active:scale-95 transition-all text-lg hairline-border">3</button>
+                <button onclick="submitCalcSpend()" class="row-span-2 bg-[#352900] text-[#FBFDF7] rounded-xl flex flex-col justify-center items-center hover:opacity-95 active:scale-95 transition-all text-sm shadow-md">
+                    <i class="fa-solid fa-check text-base mb-1"></i>確認
+                </button>
+
+                <button onclick="pressCalcKey('0')" class="col-span-2 bg-white rounded-xl flex justify-center items-center hover:bg-[#352900]/5 active:scale-95 transition-all text-lg hairline-border">0</button>
+                <button onclick="pressCalcKey('.')" class="aspect-square bg-white rounded-xl flex justify-center items-center hover:bg-[#352900]/5 active:scale-95 transition-all text-lg hairline-border">.</button>
+            </div>
+        </div>
+
+        <!-- 2. 語音動態錄音面板 (Verbalize Panel) -->
+        <div id="voice-panel" class="absolute inset-0 bg-[#352900]/95 z-40 hidden flex-col justify-between p-8 text-[#FBFDF7]">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-bold tracking-widest text-[#FBFDF7]/50 uppercase">🎙️ 語音偵測中...</span>
+                <button onclick="closeVoicePanel()" class="w-8 h-8 rounded-full bg-white/10 text-white flex justify-center items-center"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+
+            <div class="flex flex-col items-center justify-center my-auto space-y-6">
+                <!-- 動態聲音波形模擬 -->
+                <div class="flex items-center space-x-2 h-16">
+                    <div class="w-1.5 bg-[#F5D6FF] rounded-full animate-bounce h-12" style="animation-delay: 0.1s"></div>
+                    <div class="w-1.5 bg-[#AEB7FF] rounded-full animate-bounce h-16" style="animation-delay: 0.3s"></div>
+                    <div class="w-1.5 bg-[#FFBC54] rounded-full animate-bounce h-8" style="animation-delay: 0.2s"></div>
+                    <div class="w-1.5 bg-[#C2B500] rounded-full animate-bounce h-14" style="animation-delay: 0.4s"></div>
+                    <div class="w-1.5 bg-[#F5D6FF] rounded-full animate-bounce h-6" style="animation-delay: 0.5s"></div>
+                </div>
+
+                <div class="text-center px-4 space-y-2">
+                    <p class="text-lg font-medium" id="voice-interim-text">請大聲說出，例如：</p>
+                    <button id="btn-vstop" onclick="stopVoiceManual()" class="w-full py-2.5 rounded-xl font-bold text-xs bg-[#D0A198] text-white mb-3 hidden">點擊停止聆聽</button>
+                    <p class="text-sm opacity-60 italic" id="voice-example">「用咗五千蚊買 Daiso 化妝品」</p>
+                </div>
+            </div>
+
+            <!-- 提供快捷模擬選項，方便調試 -->
+            <div id="voice-quick-actions" class="space-y-2.5">
+                <p class="text-[10px] opacity-40 font-bold uppercase tracking-wider text-center">現場太亂？點擊下方快捷模擬：</p>
+                <div class="grid grid-cols-2 gap-2 text-[#352900] text-xs font-semibold">
+                    <button onclick="simulateVoice('用咗五千元去買 Daiso 化妝品')" class="p-2.5 rounded-xl bg-[#F5D6FF] text-left hover:scale-98 transition-transform">廣東話：「用咗五千元」</button>
+                    <button onclick="simulateVoice('買咗千五蚊護膚品')" class="p-2.5 rounded-xl bg-[#AEB7FF] text-left hover:scale-98 transition-transform">廣東話口語：「千五蚊」</button>
+                </div>
+            </div>
+
+            <!-- 語音辨識結果編輯面板 -->
+            <div id="voice-result-panel" class="space-y-3 hidden">
+                <div class="bg-white/10 rounded-2xl p-3 text-center">
+                    <p class="text-[10px] opacity-50 uppercase tracking-wider">辨識文字</p>
+                    <p class="text-sm font-medium mt-1" id="voice-raw-text"></p>
+                </div>
+                <div class="bg-white rounded-2xl p-3 text-[#352900]">
+                    <label class="text-[10px] font-bold opacity-40 uppercase block mb-1">金額</label>
+                    <input type="number" id="voice-amt-input" class="w-full text-lg font-extrabold bg-transparent outline-none" placeholder="0">
+                </div>
+                <div class="bg-white rounded-2xl p-3 text-[#352900]">
+                    <label class="text-[10px] font-bold opacity-40 uppercase block mb-1">錢包</label>
+                    <select id="voice-wallet-sel" class="w-full text-sm font-bold bg-transparent outline-none"></select>
+                </div>
+                <div class="bg-white rounded-2xl p-3 text-[#352900]">
+                    <label class="text-[10px] font-bold opacity-40 uppercase block mb-1">備註</label>
+                    <input type="text" id="voice-memo-input" class="w-full text-sm font-semibold bg-transparent outline-none" placeholder="消費描述">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="confirmVoiceTx('out')" class="py-2.5 rounded-xl font-bold text-xs bg-[#D0A198] text-white">記支出</button>
+                    <button onclick="confirmVoiceTx('in')" class="py-2.5 rounded-xl font-bold text-xs bg-[#D2DDD4] text-[#352900]">記收入</button>
+                </div>
+                <button onclick="resetVoicePanel()" class="w-full py-2 rounded-xl font-bold text-[10px] text-white/40">重新聆聽</button>
+            </div>
+        </div>
+
+        <!-- 3. 收據自動掃描與相機辨識面板 (OCR Receipt Scanner) -->
+        <div id="ocr-panel" class="absolute inset-0 bg-black/95 z-40 hidden flex-col justify-between p-6 text-white">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-bold tracking-widest text-white/50 uppercase">📷 收據自動記帳</span>
+                <button onclick="closeOCR()" class="w-8 h-8 rounded-full bg-white/10 text-white flex justify-center items-center"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+
+            <!-- 收據相機取景模擬器 -->
+            <div class="relative w-full h-[60%] border-2 border-dashed border-white/30 rounded-3xl overflow-hidden flex justify-center items-center bg-zinc-900">
+                <!-- 綠色激光掃描線 -->
+                <div id="laser-line" class="absolute left-0 w-full h-1 bg-green-400 shadow-[0_0_15px_#22c55e] scan-line hidden"></div>
+                
+                <!-- 掃描結果或初始提示 -->
+                <div id="scanner-status" class="text-center p-6 space-y-4">
+                    <i class="fa-solid fa-file-invoice text-4xl text-white/40"></i>
+                    <p class="text-xs text-white/60">對準收據拍攝，或上傳收據相片</p>
+                    <div class="flex justify-center space-x-2">
+                        <input type="file" id="ocr-camera-input" class="hidden" accept="image/*" capture="environment" onchange="handleFileOCR(event)">
+                        <input type="file" id="ocr-gallery-input" class="hidden" accept="image/*" onchange="handleFileOCR(event)">
+                        <button onclick="document.getElementById('ocr-camera-input').click()" class="px-4 py-2 bg-[#C2B500] text-[#352900] text-xs font-bold rounded-xl active:scale-95 transition-transform">
+                            <i class="fa-solid fa-camera mr-1"></i> 開啟相機拍攝
+                        </button>
+                        <button onclick="document.getElementById('ocr-gallery-input').click()" class="px-4 py-2 bg-white/20 text-white text-xs font-bold rounded-xl active:scale-95 transition-transform">
+                            <i class="fa-solid fa-image mr-1"></i> 選取相片
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 模擬相片預覽 -->
+                <img id="ocr-preview-img" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300 pointer-events-none" />
+            </div>
+
+            <!-- OCR 狀態腳註 -->
+            <div class="text-center p-2">
+                <p class="text-[10px] text-white/40">使用前端 OCR 技術識別收據，相片不保留不外洩。</p>
+            </div>
+        </div>
+
+        <!-- 4. 日曆對帳看板面板 (Calendar View) -->
+        <div id="calendar-panel" class="absolute inset-0 bg-[#FBFDF7] z-30 hidden flex-col justify-between p-6">
+            <div class="flex justify-between items-center pt-8 pb-2">
+                <span class="text-xs font-bold text-[#352900]" style="text-shadow:0 1px 2px rgba(255,255,255,0.5)/40 uppercase tracking-wider">📅 日曆對帳面板</span>
+                <button onclick="toggleCalendarView()" class="w-8 h-8 rounded-full bg-[#352900]/5 text-[#352900] flex justify-center items-center"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+
+            <!-- 日曆本體卡片 -->
+            <div class="bg-white rounded-3xl p-4 hairline-border flex-grow overflow-y-auto no-scrollbar flex flex-col justify-between">
+                <div>
+                    <!-- 日曆頭部月份 -->
+                    <div class="flex justify-between items-center mb-4 px-2">
+                        <span class="text-sm font-extrabold text-[#352900]" id="calendar-month-year">2026年 6月</span>
+                        <div class="flex space-x-1">
+                            <button onclick="prevMonth()" class="p-1.5 rounded-lg hover:bg-[#352900]/5"><i class="fa-solid fa-chevron-left text-[#352900]/60 text-xs"></i></button>
+                            <button onclick="nextMonth()" class="p-1.5 rounded-lg hover:bg-[#352900]/5"><i class="fa-solid fa-chevron-right text-[#352900]/60 text-xs"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- 星期列表 -->
+                    <div class="grid grid-cols-7 text-center text-[10px] font-bold text-[#352900]/40 uppercase mb-2">
+                        <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+                    </div>
+
+                    <!-- 日期網格 -->
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-y-2 text-center text-xs font-semibold text-[#352900]">
+                        <!-- 動態渲染日期 -->
+                    </div>
+                </div>
+
+                <!-- 選中日期的活動 -->
+                <div class="mt-4 pt-4 border-t border-[#352900]/5 flex-grow">
+                    <p class="text-[10px] font-bold text-[#352900]/40 uppercase tracking-wider mb-2" id="selected-day-label">點擊日期查看明細</p>
+                    <div class="bg-[#ECEBE4] rounded-2xl p-3 mb-3 text-xs">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#352900]">今日收支</span>
+                        <span class="text-[10px] text-[#352900]/50" id="today-date-label"></span>
+                    </div>
+                    <div class="flex gap-4" id="today-summary">
+                        <span class="text-[#10a37f] font-bold">收入: <span id="today-income">0</span></span>
+                        <span class="text-[#D0A198] font-bold">支出: <span id="today-expense">0</span></span>
+                    </div>
+                </div>
+                <div class="flex gap-2 mb-3">
+                    <button id="view-month" onclick="setCalendarView('month')" class="text-[10px] px-3 py-1 rounded-full font-bold bg-[#352900] text-white">月檢視</button>
+                    <button id="view-week" onclick="setCalendarView('week')" class="text-[10px] px-3 py-1 rounded-full font-bold bg-white text-[#352900] border border-[#352900]/10">週檢視</button>
+                </div>
+                <div class="chart-wrap"><canvas id="spend-chart"></canvas><div class="chart-empty" id="chart-empty">暫無本月支出</div></div>
+                    <div id="selected-day-list" class="space-y-2 max-h-36 overflow-y-auto no-scrollbar">
+                        <!-- 選中日期的流水 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. 語音/OCR 解析確認確認框 (Confirmation Modal) -->
+        <div id="confirm-modal" class="absolute inset-0 bg-[#352900]/40 z-50 hidden flex justify-center items-center p-6">
+            <div class="bg-[#FBFDF7] rounded-[32px] p-6 w-full max-w-[320px] shadow-2xl hairline-border space-y-4">
+                <div class="text-center space-y-1">
+                    <span class="text-[10px] font-bold tracking-widest text-[#352900]/40 uppercase" id="confirm-source-title">智慧識別結果</span>
+                    <h3 class="text-lg font-extrabold text-[#352900]">入帳確認</h3>
+                </div>
+
+                <div class="space-y-2.5">
+                    <!-- 收支與金額 -->
+                    <div class="bg-white p-3 rounded-2xl hairline-border flex justify-between items-center">
+                        <span class="text-xs font-semibold text-[#352900]/50">金額 / 收支</span>
+                        <div class="text-right">
+                            <span id="confirm-amount" class="text-xl font-black text-[#FFBC54]">$5,000</span>
+                            <span id="confirm-type" class="text-[10px] px-2 py-0.5 rounded-full bg-[#FFBC54]/20 text-[#352900] font-bold ml-1">支出</span>
+                        </div>
+                    </div>
+
+                    <!-- 扣減錢包 -->
+                    <div class="bg-white p-3 rounded-2xl hairline-border flex justify-between items-center">
+                        <span class="text-xs font-semibold text-[#352900]/50">記帳錢包</span>
+                        <select id="confirm-wallet-select" class="text-xs font-bold text-[#352900]" style="text-shadow:0 1px 2px rgba(255,255,255,0.5) bg-[#E2E2DE] px-2.5 py-1 rounded-lg outline-none">
+                            <!-- 錢包選項 -->
+                        </select>
+                    </div>
+
+                    <!-- 備註說明 -->
+                    <div class="bg-white p-3 rounded-2xl hairline-border">
+                        <span class="text-[10px] font-bold text-[#352900]/40 uppercase block mb-1">消費備註說明</span>
+                        <input id="confirm-memo" type="text" class="w-full text-xs font-semibold text-[#352900] bg-transparent border-b border-[#352900]/10 py-1 outline-none focus:border-[#352900]" value="Daiso 化妝品">
+                    </div>
+                </div>
+
+                <!-- 操作按鈕 -->
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button onclick="closeConfirmModal(false)" class="py-2.5 rounded-xl font-bold text-xs bg-[#E2E2DE] text-[#352900] hover:bg-opacity-90">取消</button>
+                    <button onclick="closeConfirmModal(true)" class="py-2.5 rounded-xl font-bold text-xs bg-[#352900] text-white hover:bg-opacity-95">確認入帳</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. 新增與管理錢包彈出層 -->
+        <div id="wallet-modal" class="absolute inset-x-0 bottom-0 h-[60%] bg-[#FBFDF7] rounded-t-[40px] shadow-[0_-15px_50px_rgba(53,41,0,0.15)] z-40 transform translate-y-full calculator-slide flex flex-col justify-between p-6 hairline-border">
+            <div class="flex justify-between items-center pb-2">
+                <span class="text-xs font-bold text-[#352900]" style="text-shadow:0 1px 2px rgba(255,255,255,0.5)/40 uppercase tracking-wider">💼 管理錢包與初始餘額</span>
+                <button onclick="closeWalletModal()" class="w-8 h-8 rounded-full bg-[#352900]/5 text-[#352900] flex justify-center items-center"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+
+            <!-- 新增錢包區域 -->
+<div class="flex items-center justify-between bg-white p-3 rounded-2xl hairline-border mb-3">
+                    <span class="text-[10px] font-bold text-[#352900]/40 uppercase">預設貨幣</span>
+                    <select id="settings-currency" onchange="changeCurrency(this.value)" class="text-xs font-bold p-1.5 rounded-lg bg-[#F4F5F6] outline-none">
+                        <option value="TWD">TWD (NT$)</option><option value="HKD">HKD (HK$)</option><option value="MOP">MOP (MOP$)</option><option value="USD">USD ($)</option><option value="JPY">JPY (¥)</option><option value="CNY">CNY (CN¥)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="SGD">SGD (S$)</option><option value="KRW">KRW (₩)</option><option value="THB">THB (฿)</option><option value="MYR">MYR (RM)</option><option value="AUD">AUD (A$)</option>
+                    </select>
+                </div>
+                
+            <div class="bg-white p-4 rounded-2xl hairline-border space-y-3">
+                <p class="text-[10px] font-bold text-[#352900]/40 uppercase">新增一個錢包 (可設置初始金額)</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <input id="new-wallet-name" type="text" placeholder="錢包名稱, 如 Cash" class="text-xs font-semibold p-2.5 bg-[#F4F5F6] rounded-xl outline-none border border-transparent focus:border-[#352900]/10">
+                    <input id="new-wallet-bal" type="number" placeholder="初始金額, 如 6000" class="text-xs font-semibold p-2.5 bg-[#F4F5F6] rounded-xl outline-none border border-transparent focus:border-[#352900]/10">
+                </div>
+                
+                <!-- 預設色彩指定 -->
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] text-[#352900]/50 font-bold">選擇錢包底色:</span>
+                    <div class="flex space-x-2" id="wallet-color-selectors">
+                        <div onclick="selectNewWalletColor('#F6FFEA', this)" class="w-5 h-5 rounded-full bg-[#F6FFEA] cursor-pointer border-2 border-[#352900] scale-110"></div>
+                        <div onclick="selectNewWalletColor('#FFDE96', this)" class="w-5 h-5 rounded-full bg-[#FFDE96] cursor-pointer border border-[#352900]/10"></div>
+                        <div onclick="selectNewWalletColor('#FA855A', this)" class="w-5 h-5 rounded-full bg-[#FA855A] cursor-pointer border border-[#352900]/10"></div>
+                        <div onclick="selectNewWalletColor('#C93638', this)" class="w-5 h-5 rounded-full bg-[#C93638] cursor-pointer border border-[#352900]/10"></div>
+                        <div onclick="selectNewWalletColor('#62C4DA', this)" class="w-5 h-5 rounded-full bg-[#62C4DA] cursor-pointer border border-[#352900]/10"></div>
+                        <div onclick="selectNewWalletColor('#F5D6FF', this)" class="w-5 h-5 rounded-full bg-[#F5D6FF] cursor-pointer border border-[#352900]/10"></div>
+                        <div onclick="selectNewWalletColor('#FFBC54', this)" class="w-5 h-5 rounded-full bg-[#FFBC54] cursor-pointer border border-[#352900]/10"></div>
+                        <div onclick="selectNewWalletColor('#AEB7FF', this)" class="w-5 h-5 rounded-full bg-[#AEB7FF] cursor-pointer border border-[#352900]/10"></div>
+                        <div onclick="selectNewWalletColor('#C2B500', this)" class="w-5 h-5 rounded-full bg-[#C2B500] cursor-pointer border border-[#352900]/10"></div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] text-[#352900]/50 font-bold">錢包貨幣:</span>
+                    <select id="new-wallet-currency" class="text-xs font-bold p-1.5 rounded-lg bg-[#F4F5F6] outline-none">
+                        <option value="TWD">TWD (NT$)</option><option value="HKD" selected>HKD (HK$)</option><option value="MOP">MOP (MOP$)</option><option value="USD">USD ($)</option><option value="JPY">JPY (¥)</option><option value="CNY">CNY (CN¥)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="SGD">SGD (S$)</option><option value="KRW">KRW (₩)</option><option value="THB">THB (฿)</option><option value="MYR">MYR (RM)</option><option value="AUD">AUD (A$)</option>
+                    </select>
+                </div>
+                <button onclick="addNewWallet()" class="w-full py-2.5 rounded-xl font-bold text-xs bg-[#352900] text-white">
+                    一鍵建立並存入初始金額
+                </button>
+            </div>
+
+            <!-- 現有錢包列表與刪除 -->
+            <div class="flex-grow mt-3 overflow-y-auto no-scrollbar max-h-36 space-y-2">
+                <p class="text-[10px] font-bold text-[#352900]/40 uppercase px-1">現有錢包</p>
+                <div id="wallets-manage-list" class="space-y-1.5">
+                    <!-- 動態渲染現有錢包清單 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 全局吐司小提示框 -->
+        <div id="toast" class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#352900] text-white text-[11px] font-semibold px-4 py-2 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50"></div>
+
+    </div>
+
+    <!-- ==================== WEB APP JAVASCRIPT LOGIC ==================== -->
+    <script>
+
+        // USERNAME SYSTEM
+        let currentUser = localStorage.getItem('bv_current_user') || '';
+        if (currentUser) {
+            document.getElementById('welcome-screen').style.display = 'none';
+        }
+        function startApp() {
+            var name = document.getElementById('username-input').value.trim();
+            if (!name) { alert('請輸入你的名稱'); return; }
+            currentUser = name;
+            localStorage.setItem('bv_current_user', name);
+            var el = document.getElementById('welcome-screen');
+            el.style.transition = 'opacity 0.4s, transform 0.4s';
+            el.style.opacity = '0';
+            el.style.transform = 'scale(1.05)';
+            setTimeout(function() { el.style.display = 'none'; }, 400);
+            loadData();
+            renderAll();
+            showToast('歡迎 ' + name + '！');
+        }
+        function userKey(k) { return 'bv_' + currentUser + '_' + k; }
+
+        // 1. 初始化資料狀態與持久化存儲 (Local Storage)
+        let wallets = JSON.parse(localStorage.getItem(userKey('wallets'))) || [
+            { id: 'wallet_1', name: 'WowPass', initialBalance: 0, color: '#FFDE96', currency: 'TWD' },
+            { id: 'wallet_2', name: 'Cash', initialBalance: 0, color: '#FA855A', currency: 'HKD' },
+            { id: 'wallet_3', name: 'Octopus', initialBalance: 0, color: '#62C4DA', currency: 'HKD' }
+        ];
+
+        let transactions = JSON.parse(localStorage.getItem(userKey('txs'))) || [];
+
+        let currency = JSON.parse(localStorage.getItem('spend_currency') || '"TWD"');
+        let lang = JSON.parse(localStorage.getItem('spend_lang') || '"zh-HK"');
+        const CUR_MAP = {TWD:'NT$',HKD:'HK$',MOP:'MOP$',USD:'$',JPY:'¥',CNY:'CN¥',EUR:'€',GBP:'£',SGD:'S$',KRW:'₩',THB:'฿',MYR:'RM',AUD:'A$'};
+        function fmtCur(n, wid){
+            var cur = currency;
+            if (wid) { var w = wallets.find(function(x){return x.id===wid}); if (w && w.currency) cur = w.currency; }
+            return (CUR_MAP[cur]||'$')+Number(n||0).toLocaleString('zh-HK',{minimumFractionDigits:0,maximumFractionDigits:0});
+        }
+        function walletBal(wid){const w=wallets.find(x=>x.id===wid);if(!w)return 0;const tx=transactions.filter(x=>x.walletId===wid);return w.initialBalance+tx.filter(x=>x.type=='in').reduce(function(s,x){return s+x.amount},0)-tx.filter(x=>x.type=='out').reduce(function(s,x){return s+x.amount},0)}
+        function computeBalances(){wallets.forEach(function(w){w.balance=walletBal(w.id)})}
+        function totalBal(){return wallets.reduce((s,w)=>s+walletBal(w.id),0)}
+        function i18n(zh,en){return lang==='zh-HK'?zh:en}
+        function toggleLang(){lang=lang==='zh-HK'?'en':'zh-HK';localStorage.setItem('spend_lang',JSON.stringify(lang));var b=document.getElementById('btn-lang');if(b)b.textContent=lang==='zh-HK'?'繁中':'EN';try{renderAll()}catch(e){};}
+        function changeCurrency(c){currency=c;localStorage.setItem('spend_currency',JSON.stringify(currency));renderAll()}
+
+        let activeWalletId = wallets[0]?.id || '';
+        let currentNewWalletColor = '#FFDE96';
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth(); // 0-11
+        let selectedDay = new Date().toISOString().split('T')[0];
+        let calendarViewMode = 'month'; // 'month' or 'week'
+
+        // 計算機當前狀態
+        let calcVal = '0';
+        let calcType = 'out'; // 'in' or 'out'
+        let calcMemo = '無備註';
+
+        // 2. 頁面啟動裝載
+        window.onload = function() { if (!currentUser) { document.getElementById('welcome-screen').style.display = 'flex'; return; }
+            renderAll(); document.getElementById('settings-currency').value = currency;
+            document.getElementById('view-month').className = 'text-[10px] px-3 py-1 rounded-full font-bold bg-[#352900] text-white';
+            initHoldGesture();
+            
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            var btn = document.getElementById('welcome-btn');
+            if (btn) {
+                btn.addEventListener('click', function() {
+                    // Simple chime using AudioContext
+                    try {
+                        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        var osc = ctx.createOscillator();
+                        var gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(587.33, ctx.currentTime);      // D5
+                        osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.08); // G5
+                        osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.16); // C6
+                        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(ctx.currentTime);
+                        osc.stop(ctx.currentTime + 0.5);
+                    } catch(e) {}
+
+                    // Dismiss welcome
+                    var el = document.getElementById('welcome-screen');
+                    if (el) {
+                        el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                        el.style.opacity = '0';
+                        el.style.transform = 'scale(1.05)';
+                        setTimeout(function() { el.style.display = 'none'; }, 400);
+                    }
+                });
+            }
+        });
+
+            showToast("歡迎使用 Travel Wallet 記帳神器");
+        }
+
+        // 3. 多錢包管理渲染與切換
+        function renderWallets() {
+            const container = document.getElementById('wallets-container');
+            container.innerHTML = '';
+            
+            let total = 0;
+            wallets.forEach(wallet => {
+                total += walletBal(wallet.id);
+                const isActive = wallet.id === activeWalletId;
+                
+                // 動態錢包卡片結構，符合 Booked 色號
+                const card = document.createElement('div');
+                card.onclick = () => selectWallet(wallet.id);
+                card.className = `p-3 hairline-border rounded-2xl cursor-pointer transition-all duration-300 relative ${isActive ? 'scale-103 shadow-md' : 'opacity-65 hover:opacity-90'}`;
+                card.style.backgroundColor = wallet.color;
+                card.style.color = '#352900'; card.style.textShadow = '0 1px 3px rgba(255,255,255,0.6)';
+
+                // 選中邊框高亮
+                if (isActive) {
+                    card.style.border = '1px solid #352900';
+                } else {
+                    card.style.border = '1px solid rgba(53, 41, 0, 0.08)';
+                }
+
+                card.innerHTML = `
+                    <div class="text-[10px] opacity-50 font-bold mb-1 truncate">${wallet.name}</div>
+                    <div class="text-[15px] font-black tracking-tight">${fmtCur(walletBal(wallet.id), wallet.id)}</div>
+                    ${isActive ? '<span class="absolute top-1.5 right-2 w-1.5 h-1.5 bg-[#352900] rounded-full"></span>' : ''}
+                `;
+                container.appendChild(card);
+            });
+
+            document.getElementById('total-balance').innerText = fmtCur(total);
+        }
+
+        function selectWallet(id) {
+            activeWalletId = id;
+            renderWallets();
+            // 同步更新計算機標籤
+            const wallet = wallets.find(w => w.id === activeWalletId);
+            if (wallet) {
+                document.getElementById('calc-wallet-label').innerText = `目前記錄至: ${wallet.name}`;
+            }
+        }
+
+        // 新增與管理錢包彈出控制
+        function openWalletModal() {
+            renderManageWalletsList();
+            document.getElementById('wallet-modal').classList.remove('translate-y-full');
+        }
+
+        function closeWalletModal() {
+            document.getElementById('wallet-modal').classList.add('translate-y-full');
+        }
+
+        function selectNewWalletColor(color, el) {
+            currentNewWalletColor = color;
+            const selectors = document.querySelectorAll('#wallet-color-selectors div');
+            selectors.forEach(sel => {
+                sel.classList.remove('scale-110', 'border-2', 'border-[#352900]');
+                sel.classList.add('border', 'border-[#352900]/10');
+            });
+            el.classList.remove('border', 'border-[#352900]/10');
+            el.classList.add('border-2', 'border-[#352900]', 'scale-110');
+        }
+
+        function addNewWallet() {
+            const name = document.getElementById('new-wallet-name').value.trim();
+            const balVal = document.getElementById('new-wallet-bal').value;
+            const initialBal = balVal ? parseFloat(balVal) : 0;
+
+            if (!name) {
+                showToast("請輸入錢包名稱");
+                return;
+            }
+
+            var wCurrency = document.getElementById('new-wallet-currency').value || 'HKD';
+            const newWallet = {
+                id: 'wallet_' + Date.now(),
+                name: name,
+                initialBalance: initialBal,
+                color: currentNewWalletColor,
+                currency: wCurrency
+            };
+
+            wallets.push(newWallet);
+            activeWalletId = newWallet.id;
+            saveData();
+            renderWallets();
+            renderManageWalletsList();
+            
+            // 清空輸入框
+            document.getElementById('new-wallet-name').value = '';
+            document.getElementById('new-wallet-bal').value = '';
+            
+            showToast(`已成功存入初始金額 $${initialBal} 至 ${name}`);
+        }
+
+        function renderManageWalletsList() {
+            var mList = document.getElementById('wallets-manage-list');
+            mList.innerHTML = '';
+            var curOpts = '<option value="TWD">TWD</option><option value="HKD">HKD</option><option value="MOP">MOP</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="CNY">CNY</option><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="SGD">SGD</option><option value="KRW">KRW</option><option value="THB">THB</option><option value="MYR">MYR</option><option value="AUD">AUD</option>';
+            wallets.forEach(function(wallet) {
+                var item = document.createElement('div');
+                item.className = 'flex justify-between items-center p-2 rounded-xl bg-white hairline-border text-xs';
+                var selCur = wallet.currency || 'HKD';
+                var opts = curOpts.replace('value="' + selCur + '"', 'value="' + selCur + '" selected');
+                item.innerHTML = '<div class="flex items-center space-x-2">'
+                    + '<span class="w-3.5 h-3.5 rounded-full inline-block" style="background-color:' + wallet.color + '"></span>'
+                    + '<span class="font-bold text-[#352900]">' + wallet.name + ' (' + fmtCur(walletBal(wallet.id), wallet.id) + ')</span>'
+                    + '</div>'
+                    + '<div class="flex items-center space-x-1">'
+                    + '<select onchange="changeWalletCurrency(\'' + wallet.id + '\', this.value)" class="text-[10px] font-bold p-1 rounded-lg bg-[#F4F5F6] outline-none">' + opts + '</select>'
+                    + (wallets.length > 1 ? '<button onclick="deleteWallet(\'' + wallet.id + '\')" class="text-red-500 font-semibold px-2">刪除</button>' : '')
+                    + '</div>';
+                mList.appendChild(item);
+            });
+        }
+
+        function changeWalletCurrency(wid, cur) {
+            var w = wallets.find(function(x) { return x.id === wid; });
+            if (w) { w.currency = cur; saveData(); renderAll(); showToast(w.name + ' 貨幣已更新'); }
+        }
+
+        function deleteWallet(id) {
+             computeBalances(); wallets = wallets.filter(w => w.id !== id);
+            if (activeWalletId === id) {
+                activeWalletId = wallets[0]?.id || '';
+            }
+            saveData();
+            renderWallets();
+            renderManageWalletsList();
+            showToast("已成功移除錢包");
+        }
+
+        // 4. 歷史流水平面清單
+        
+        function renderAll() {
+            try {
+                renderWallets();
+                renderHistoryList();
+                renderCalendar();
+                var el = document.getElementById('settings-currency'); if (el) el.value = currency;
+                el = document.getElementById('view-month'); if (el) el.className = 'text-[10px] px-3 py-1 rounded-full font-bold bg-[#352900] text-white';
+                el = document.getElementById('view-week'); if (el) el.className = 'text-[10px] px-3 py-1 rounded-full font-bold bg-white text-[#352900] border border-[#352900]/10';
+                el = document.getElementById('btn-lang'); if (el) el.textContent = lang === 'zh-HK' ? '繁中' : 'EN';
+                el = document.getElementById('total-balance'); if (el) el.innerText = fmtCur(totalBal());
+            } catch(e) { console.error('renderAll error:', e); }
+        }
+
+        function renderHistoryList() {
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+
+            // 只篩選當前日期或前幾筆
+            const todayStr = new Date().toISOString().split('T')[0];
+            const displayTxs = transactions.filter(t => t.date === todayStr);
+
+            if (displayTxs.length === 0) {
+                list.innerHTML = `<div class="text-center py-6 text-[10px] text-[#352900]/30 font-bold">今天還沒有記過帳</div>`;
+                return;
+            }
+
+            displayTxs.forEach(tx => {
+                const wallet = wallets.find(w => w.id === tx.walletId);
+                const walletColor = wallet ? wallet.color : '#E2E2DE';
+                const txColor = tx.type === 'out' ? '#D0A198' : '#D2DDD4';
+
+                const row = document.createElement('div');
+                row.className = 'flex justify-between items-center bg-white/50 p-2.5 rounded-xl hairline-border hover:bg-white transition-colors';
+                row.style.position = 'relative';
+                row.style.overflow = 'hidden';
+                row.style.touchAction = 'pan-y';
+                row.innerHTML = `
+                    <div class="txi-del-bg">刪除</div>
+                    <div class="flex items-center space-x-3" style="position:relative;z-index:1">
+                        <div class="w-3.5 h-3.5 rounded-full" style="background-color: ${txColor}"></div>
+                        <div>
+                            <p class="text-xs font-bold text-[#352900]" style="text-shadow:0 1px 2px rgba(255,255,255,0.5)">${tx.memo}</p>
+                            <p class="text-[9px] text-[#352900]/40 font-semibold">${wallet ? wallet.name : '未知'} ‧ ${tx.time}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-black" style="position:relative;z-index:1;color:${tx.type === 'out' ? '#352900' : '#10a37f'}">
+                        ${tx.type === 'out' ? '-' : '+'} ${fmtCur(tx.amount)}
+                    </span>
+                `;
+                // Swipe-to-delete
+                (function(r, txId) {
+                    var sx = 0, cx = 0, sw = false;
+                    var bg = r.querySelector('.txi-del-bg');
+                    r.addEventListener('touchstart', function(e) { sx = e.touches[0].clientX; sw = true; r.style.transition = 'none'; }, {passive: true});
+                    r.addEventListener('touchmove', function(e) {
+                        if (!sw) return;
+                        cx = e.touches[0].clientX;
+                        var d = cx - sx;
+                        if (d < 0) { r.style.transform = 'translateX(' + Math.max(d, -100) + 'px)'; bg.style.width = Math.abs(Math.min(d, 0)) + 'px'; }
+                    }, {passive: true});
+                    r.addEventListener('touchend', function() {
+                        if (!sw) return; sw = false;
+                        var d = cx - sx;
+                        r.style.transition = 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+                        bg.style.transition = 'width 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+                        if (d < -65) {
+                            r.style.transform = 'translateX(-200px)';
+                            r.style.opacity = '0';
+                            r.style.transition = 'all 0.3s ease';
+                            setTimeout(function() {
+                                transactions = transactions.filter(function(t) { return t.id !== txId; });
+                                saveData(); renderAll(); showToast('記錄已刪除');
+                            }, 300);
+                        } else { r.style.transform = 'translateX(0)'; bg.style.width = '0'; }
+                    });
+                })(row, tx.id);
+                list.appendChild(row);
+                bindSwipeDelete(row, tx.id);
+            });
+        }
+
+        function bindSwipeDelete(el, txid) {
+            let sx = 0, cx = 0, sw = false;
+            const bg = document.createElement('div');
+            bg.className = 'txi-del';
+            bg.textContent = '刪除';
+            el.style.position = 'relative';
+            el.style.overflow = 'hidden';
+            el.appendChild(bg);
+            el.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sw = true; el.style.transition = 'none'; }, {passive:true});
+            el.addEventListener('touchmove', e => {
+                if (!sw) return;
+                cx = e.touches[0].clientX;
+                const d = cx - sx;
+                if (d < 0) { el.style.transform = 'translateX(' + Math.max(d, -100) + 'px)'; bg.style.width = Math.abs(Math.min(d, 0)) + 'px'; }
+            }, {passive:true});
+            el.addEventListener('touchend', () => {
+                if (!sw) return; sw = false;
+                const d = cx - sx;
+                el.style.transition = 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+                bg.style.transition = 'width 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+                if (d < -65) {
+                    gsap.to(el, {x: -200, opacity: 0, duration: 0.3, ease: 'power2.in', onComplete: () => {
+                        transactions = transactions.filter(t => t.id !== txid);
+                        saveData(); renderAll(); showToast('記錄已刪除');
+                    }});
+                } else { el.style.transform = 'translateX(0)'; bg.style.width = '0'; }
+            });
+        }
+
+        // 5. 手勢滑動與拖曳事件核心邏輯 (Press & Drag & Swipe Handler)
+        let isHolding = false;
+        let holdTimer = null;
+        let startX = 0;
+        let startY = 0;
+        function initHoldGesture() {
+            const triggerBtn = document.getElementById('hold-trigger');
+            if (!triggerBtn) return;
+            triggerBtn.addEventListener('mousedown', startHold);
+            triggerBtn.addEventListener('touchstart', startHold, {passive: false});
+            window.addEventListener('mousemove', dragMove);
+            window.addEventListener('touchmove', dragMove, {passive: false});
+            window.addEventListener('mouseup', endHold);
+            window.addEventListener('touchend', endHold);
+        }
+
+        // 經典中英/廣東話/國語口語數字解析器 (重大優化升級：無漏洞、高容錯、精確定位金額)
+        function parseChineseAndArabicNumbers(text) {
+            // 1. 預處理：清洗並規範化常見的口語代稱
+            let normalized = text
+                .toLowerCase()
+                .replace(/半/g, '0.5')
+                .replace(/兩/g, '二')
+                .replace(/两/g, '二')
+                .replace(/廿/g, '二十')
+                .replace(/卅/g, '三十')
+                .replace(/个/g, '')
+                .replace(/個/g, '')
+                .replace(/蚊/g, '元')
+                .replace(/块/g, '元')
+                .replace(/塊/g, '元');
+
+            // 2. 處理 K/k 縮寫 (例如 "5k" ➔ 5000, "1.5k" ➔ 1500)
+            normalized = normalized.replace(/([0-9.]+)\s*k/gi, (m, g1) => parseFloat(g1) * 1000);
+
+            // 3. 處理「萬/万」混雜寫法 (例如 "5.5萬", "5万2")
+            normalized = normalized.replace(/([0-9.]+)\s*(萬|万)\s*([0-9一二三四五六七八九十]*)/g, (m, g1, g2, g3) => {
+                let base = parseFloat(g1) * 10000;
+                if (g3) {
+                    let offset = 0;
+                    if (/^[0-9.]+$/.test(g3)) {
+                        offset = parseFloat(g3);
+                    } else {
+                        offset = parseZhNumber(g3);
+                    }
+                    // 如果 g3 是單個數字，如 "5万2"，代表 5.2 萬，即 52000
+                    if (offset < 10 && offset > 0) {
+                        return base + offset * 1000;
+                    }
+                    return base + offset;
+                }
+                return base;
+            });
+
+            // 4. 處理「千」混雜寫法 (例如 "5千2" ➔ 5200) - 修正乘 100 錯誤，恢復為 1000！
+            normalized = normalized.replace(/([0-9.]+)\s*(千)\s*([0-9一二三四五六七八九十]*)/g, (m, g1, g2, g3) => {
+                let base = parseFloat(g1) * 1000;
+                if (g3) {
+                    let offset = 0;
+                    if (/^[0-9.]+$/.test(g3)) {
+                        offset = parseFloat(g3);
+                    } else {
+                        offset = parseZhNumber(g3);
+                    }
+                    if (offset < 10 && offset > 0) {
+                        return base + offset * 100;
+                    }
+                    return base + offset;
+                }
+                return base;
+            });
+
+            // 5. 處理「百」混雜寫法 (例如 "5百2" ➔ 520)
+            normalized = normalized.replace(/([0-9.]+)\s*(百)\s*([0-9一二三四五六七八九十]*)/g, (m, g1, g2, g3) => {
+                let base = parseFloat(g1) * 100;
+                if (g3) {
+                    let offset = 0;
+                    if (/^[0-9.]+$/.test(g3)) {
+                        offset = parseFloat(g3);
+                    } else {
+                        offset = parseZhNumber(g3);
+                    }
+                    if (offset < 10 && offset > 0) {
+                        return base + offset * 10;
+                    }
+                    return base + offset;
+                }
+                return base;
+            });
+
+            // 6. 提取所有可能的數字單詞（混合中文與阿拉伯數字）
+            const matches = normalized.match(/[0-9.]+|[零一二三四五六七八九十百千萬亿]+/g);
+            if (!matches) return 0;
+            
+            // 尋找第一個能成功解析出大於 0 的金額
+            for (let m of matches) {
+                let val = 0;
+                if (/[0-9.]/.test(m)) {
+                    val = parseFloat(m);
+                } else {
+                    val = parseZhNumber(m);
+                }
+                if (val > 0) return val;
+            }
+            return 0;
+        }
+
+        // 高精確度中文字元轉數字解析函數（完美支援「千五」➔ 1500 口語）
+        function parseZhNumber(zhStr) {
+            if (!zhStr) return 0;
+            const chars = { 
+                '零': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9,
+                '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9
+            };
+            const units = { '十': 10, '百': 100, '千': 1000, '萬': 10000, '万': 10000 };
+
+            if (zhStr.length === 1) {
+                return chars[zhStr] !== undefined ? chars[zhStr] : (units[zhStr] || 0);
+            }
+
+            // 處理廣東話/國語口語縮寫，例如「千五」(1500)、「萬二」(12000)、「五萬二」(52000)、「二百五」(250)
+            let lastChar = zhStr[zhStr.length - 1];
+            let prevChar = zhStr[zhStr.length - 2];
+            if (chars[lastChar] !== undefined && units[prevChar] !== undefined) {
+                let unitVal = units[prevChar];
+                let lowerUnit = unitVal / 10;
+                if (lowerUnit >= 1) {
+                    let mainPart = parseZhNumber(zhStr.slice(0, -1));
+                    return mainPart + chars[lastChar] * lowerUnit;
+                }
+            }
+            
+            let total = 0;
+            let r = 0;
+            let temp = 0;
+            for (let i = 0; i < zhStr.length; i++) {
+                let c = zhStr[i];
+                if (chars[c] !== undefined) {
+                    temp = chars[c];
+                    if (i === zhStr.length - 1) {
+                        r += temp;
+                    }
+                } else if (units[c] !== undefined) {
+                    let u = units[c];
+                    if (u === 10 && temp === 0 && i === 0) {
+                        temp = 1;
+                    }
+                    r += (temp === 0 ? 1 : temp) * u;
+                    temp = 0;
+                }
+            }
+            total += r;
+            return total;
+        }
+
+        function startHold(e) {
+            e.preventDefault();
+            isHolding = true;
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+            startX = clientX;
+            startY = clientY;
+
+            // 長按動畫激活
+            document.getElementById('hold-trigger').classList.add('scale-110', 'breathe-active');
+            
+            // 淡入引導線與盲操圖標
+            document.getElementById('target-calc').style.opacity = '1';
+            document.getElementById('target-calc').style.transform = 'scale(1)';
+            document.getElementById('target-voice').style.opacity = '1';
+            document.getElementById('target-voice').style.transform = 'scale(1)';
+            
+            document.getElementById('guide-line-left').classList.remove('hidden');
+            document.getElementById('guide-line-right').classList.remove('hidden');
+
+            document.getElementById('gesture-tip').innerHTML = '<p class="text-xs font-bold text-[#352900]" style="text-shadow:0 1px 2px rgba(255,255,255,0.5) animate-pulse">往左上滑開啟手打 ‧ 往右上滑開啟語音</p>';
+        }
+
+        function dragMove(e) {
+            if (!isHolding) return;
+            e.preventDefault();
+
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+
+            const deltaX = clientX - startX;
+            const deltaY = clientY - startY;
+
+            // 主按鈕跟隨微位移，製造Q彈拉扯效果
+            const pullLimit = 40;
+            const pulledX = Math.max(Math.min(deltaX, pullLimit), -pullLimit);
+            const pulledY = Math.max(Math.min(deltaY, pullLimit), -pullLimit);
+            document.getElementById('hold-trigger').style.transform = `translate(${pulledX}px, ${pulledY}px) scale(1.1)`;
+
+            // 判斷拖拽角度方向是否指向特定功能區 (左上 -135度, 右上 -45度)
+            const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+            const distance = Math.hypot(deltaX, deltaY);
+
+            // 當拉扯位移超過一定距離時，判定方向
+            if (distance > 50) {
+                if (angle < -100 && angle > -170) {
+                    // 朝向左上方
+                    document.getElementById('target-calc').style.transform = 'scale(1.25)';
+                    document.getElementById('target-calc').style.backgroundColor = '#6e80ff';
+                    document.getElementById('target-voice').style.transform = 'scale(0.85)';
+                    document.getElementById('target-voice').style.backgroundColor = '#F5D6FF';
+                } else if (angle < -10 && angle > -80) {
+                    // 朝向右上方
+                    document.getElementById('target-voice').style.transform = 'scale(1.25)';
+                    document.getElementById('target-voice').style.backgroundColor = '#e17cff';
+                    document.getElementById('target-calc').style.transform = 'scale(0.85)';
+                    document.getElementById('target-calc').style.backgroundColor = '#AEB7FF';
+                } else {
+                    resetTargetStyles();
+                }
+            } else {
+                resetTargetStyles();
+            }
+        }
+
+        function endHold(e) {
+            if (!isHolding) return;
+            isHolding = false;
+
+            // 復位主按鈕
+            document.getElementById('hold-trigger').style.transform = 'translate(0px, 0px) scale(1)';
+            document.getElementById('hold-trigger').classList.remove('scale-110', 'breathe-active');
+
+            // 隱藏輔助
+            document.getElementById('target-calc').style.opacity = '0';
+            document.getElementById('target-calc').style.transform = 'scale(0.9)';
+            document.getElementById('target-voice').style.opacity = '0';
+            document.getElementById('target-voice').style.transform = 'scale(0.9)';
+            document.getElementById('guide-line-left').classList.add('hidden');
+            document.getElementById('guide-line-right').classList.add('hidden');
+            resetTargetStyles();
+
+            document.getElementById('gesture-tip').innerHTML = `
+                <p class="text-xs font-semibold text-[#352900]/70">長按中央HOLD按鈕開始</p>
+                <p class="text-[10px] text-[#352900]/40 mt-0.5">左上滑動手打 ‧ 右上滑動語音</p>
+            `;
+
+            // 手勢判斷落點 (由於拉扯限制 pullLimit，我們以實際滑鼠 delta 計算)
+            const clientX = e.clientX || (e.changedTouches ? e.changedTouches[0].clientX : startX);
+            const clientY = e.clientY || (e.changedTouches ? e.changedTouches[0].clientY : startY);
+            const deltaX = clientX - startX;
+            const deltaY = clientY - startY;
+            const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+            const distance = Math.hypot(deltaX, deltaY);
+
+            if (distance > 60) {
+                if (angle < -100 && angle > -170) {
+                    openCalculator();
+                } else if (angle < -10 && angle > -80) {
+                    openVoicePanel();
+                }
+            }
+        }
+
+        function resetTargetStyles() {
+            document.getElementById('target-calc').style.backgroundColor = '#AEB7FF';
+            document.getElementById('target-calc').style.transform = 'scale(1)';
+            document.getElementById('target-voice').style.backgroundColor = '#F5D6FF';
+            document.getElementById('target-voice').style.transform = 'scale(1)';
+        }
+
+        // 6. 仿 iCourse 極簡計算機操作邏輯
+        function openCalculator() {
+            const wallet = wallets.find(w => w.id === activeWalletId);
+            document.getElementById('calc-wallet-label').innerText = `目前記錄至: ${wallet ? wallet.name : 'WowPass'}`;
+            calcVal = '0';
+            calcMemo = '無備註';
+            document.getElementById('calc-display').innerText = calcVal;
+            document.getElementById('calc-memo').innerText = calcMemo;
+            
+            setCalcType('out');
+            document.getElementById('calc-panel').classList.remove('translate-y-full');
+        }
+
+        function closeCalculator() {
+            document.getElementById('calc-panel').classList.add('translate-y-full');
+        }
+
+        function setCalcType(type) {
+            calcType = type;
+            const outBtn = document.getElementById('calc-type-out');
+            const inBtn = document.getElementById('calc-type-in');
+            if (type === 'out') {
+                outBtn.className = "py-2 rounded-xl font-bold text-xs bg-[#FFBC54] text-[#352900] border border-[#352900]/10";
+                inBtn.className = "py-2 rounded-xl font-bold text-xs bg-white text-[#352900]/40 border border-[#352900]/5";
+            } else {
+                inBtn.className = "py-2 rounded-xl font-bold text-xs bg-[#AEB7FF] text-[#352900] border border-[#352900]/10";
+                outBtn.className = "py-2 rounded-xl font-bold text-xs bg-white text-[#352900]/40 border border-[#352900]/5";
+            }
+        }
+
+        function pressCalcKey(key) {
+            if (key === 'C') {
+                calcVal = '0';
+            } else if (key === '.') {
+                if (!calcVal.includes('.')) {
+                    calcVal += '.';
+                }
+            } else {
+                if (calcVal === '0') {
+                    calcVal = key;
+                } else {
+                    calcVal += key;
+                }
+            }
+            document.getElementById('calc-display').innerText = calcVal;
+        }
+
+        function editCalcMemo() {
+            const memoInput = prompt("請輸入您的消費備註：", calcMemo === '無備註' ? '' : calcMemo);
+            if (memoInput !== null) {
+                calcMemo = memoInput.trim() || '無備註';
+                document.getElementById('calc-memo').innerText = calcMemo;
+            }
+        }
+
+        function submitCalcSpend() {
+            var amount = parseFloat(calcVal);
+            if (isNaN(amount) || amount <= 0) {
+                showToast("請輸入有效的金額數字");
+                return;
+            }
+            // Ensure calcType matches the highlighted button
+            var outBtn = document.getElementById('calc-type-out');
+            var isOutActive = outBtn.classList.contains('bg-[#FFBC54]');
+            var type = isOutActive ? 'out' : 'in';
+            addTransaction(activeWalletId, type, amount, calcMemo === '無備註' ? (type==='out'?'手打支出':'手打收入') : calcMemo);
+            closeCalculator();
+            showToast(type==='out'?'支出已記錄':'收入已記錄');
+        }
+
+        // 7. 語音 Verbalize 面板控制與辨識模擬
+        let recognition = null;
+        let voiceActive = false;
+        let voiceFinalText = '';
+
+        function openVoicePanel() {
+            document.getElementById('voice-panel').classList.remove('hidden');
+            document.getElementById('voice-panel').classList.add('flex');
+            document.getElementById('voice-result-panel').classList.add('hidden');
+            document.getElementById('voice-quick-actions').classList.remove('hidden');
+            document.getElementById('btn-vstop').classList.remove('hidden');
+            voiceFinalText = '';
+            document.getElementById('voice-interim-text').innerText = '聆聽中，請講話...';
+            document.getElementById('voice-example').innerText = '「用咗五千蚊買 Daiso 化妝品」';
+            startVoiceRecognition();
+        }
+
+        function startVoiceRecognition() {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) {
+                document.getElementById('voice-interim-text').innerText = '瀏覽器不支援語音，請用 Chrome 或點下方快捷模擬';
+                document.getElementById('btn-vstop').classList.add('hidden');
+                return;
+            }
+            if (recognition) { try { recognition.stop(); } catch(e) {} }
+            recognition = new SR();
+            recognition.lang = 'yue-HK';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            voiceActive = true;
+            recognition.onresult = function(event) {
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) voiceFinalText += event.results[i][0].transcript;
+                    else interim += event.results[i][0].transcript;
+                }
+                const display = voiceFinalText + (interim ? ' <i style="opacity:0.5">' + interim + '</i>' : '');
+                document.getElementById('voice-interim-text').innerHTML = display || '聆聽中...';
+            };
+            recognition.onerror = function(event) {
+                if (event.error === 'no-speech') return;
+                if (event.error === 'language-not-supported') {
+                    if (recognition.lang === 'yue-HK') { recognition.lang = 'zh-HK'; try { recognition.start(); } catch(e) {} return; }
+                    if (recognition.lang === 'zh-HK') { recognition.lang = 'zh-TW'; try { recognition.start(); } catch(e) {} return; }
+                }
+                document.getElementById('voice-interim-text').innerText = '語音錯誤: ' + event.error;
+                document.getElementById('btn-vstop').classList.add('hidden');
+            };
+            recognition.onend = function() {
+                if (voiceActive && recognition) { try { recognition.start(); } catch(e) { voiceActive = false; } }
+            };
+            try { recognition.start(); } catch(e) {
+                document.getElementById('voice-interim-text').innerText = '無法啟動語音: ' + e.message;
+                document.getElementById('btn-vstop').classList.add('hidden');
+            }
+        }
+
+        function stopVoiceManual() {
+            voiceActive = false;
+            if (recognition) { try { recognition.stop(); } catch(e) {} }
+            document.getElementById('btn-vstop').classList.add('hidden');
+            if (voiceFinalText.trim()) { showVoiceResult(voiceFinalText.trim()); }
+            else { document.getElementById('voice-interim-text').innerText = '無語音輸入，請再試或點下方快捷模擬'; }
+        }
+
+        function showVoiceResult(rawText) {
+            document.getElementById('voice-quick-actions').classList.add('hidden');
+            document.getElementById('voice-result-panel').classList.remove('hidden');
+            document.getElementById('voice-raw-text').textContent = '"' + rawText + '"';
+            const amount = parseChineseAndArabicNumbers(rawText);
+            document.getElementById('voice-amt-input').value = amount || '';
+            let memo = rawText.replace(/[0-9零一二三四五六七八九十百千萬万佰]+/g,'').replace(/[\s]*[元蚊塊块文銀港紙臺幣台幣][\s]*/g,'').replace(/用[咗左了]|使[咗左了]|花[咗左了]|買[咗左了]|俾[咗左了]|比[咗左了]/g,'').replace(/[，。！？、\s]+/g,' ').trim();
+            const buyMatch = rawText.match(/(?:買|去|食|飲)(?:[咗左了])?\s*(.+)/);
+            if (buyMatch) memo = buyMatch[1].replace(/[\d\s元蚊塊块一二三四五六七八九十百千萬万]+/g,'').trim();
+            if (!memo || memo.length < 2) memo = rawText.replace(/[\d\s元蚊塊块一二三四五六七八九十百千萬万]+/g,'').trim().slice(0, 20);
+            document.getElementById('voice-memo-input').value = memo || '語音記帳';
+            const sel = document.getElementById('voice-wallet-sel');
+            sel.innerHTML = wallets.map(w => '<option value="' + w.id + '" ' + (w.id === activeWalletId ? 'selected' : '') + '>' + w.name + '</option>').join('');
+        }
+
+        function confirmVoiceTx(type) {
+            const amount = parseFloat(document.getElementById('voice-amt-input').value);
+            if (isNaN(amount) || amount <= 0) { showToast('請輸入有效金額'); return; }
+            const walletId = document.getElementById('voice-wallet-sel').value;
+            const memo = document.getElementById('voice-memo-input').value.trim() || '語音記帳';
+            addTransaction(walletId, type, amount, memo);
+            closeVoicePanel();
+        }
+
+        function resetVoicePanel() {
+            voiceFinalText = '';
+            document.getElementById('voice-result-panel').classList.add('hidden');
+            document.getElementById('voice-quick-actions').classList.remove('hidden');
+            document.getElementById('btn-vstop').classList.remove('hidden');
+            document.getElementById('voice-interim-text').innerText = '聆聽中，請講話...';
+            startVoiceRecognition();
+        }
+
+        function simulateVoice(text) {
+            voiceActive = false; if (recognition) { try { recognition.stop(); } catch(e) {} }
+            document.getElementById('btn-vstop').classList.add('hidden');
+            voiceFinalText = text;
+            showVoiceResult(text);
+        }
+
+        function closeVoicePanel() {
+            voiceActive = false;
+            if (recognition) { try { recognition.stop(); } catch(e) {} }
+            document.getElementById('voice-panel').classList.remove('flex');
+            document.getElementById('voice-panel').classList.add('hidden');
+            document.getElementById('btn-vstop').classList.add('hidden');
+        }
+
+          // 8. 拍照收據辨識 (Receipt Scanner Logic)
+        function triggerOCR() {
+            document.getElementById('ocr-panel').classList.remove('hidden');
+            document.getElementById('ocr-panel').classList.add('flex');
+            document.getElementById('ocr-preview-img').style.opacity = '0';
+            document.getElementById('laser-line').classList.add('hidden');
+            document.getElementById('scanner-status').classList.remove('hidden');
+        }
+
+        function closeOCR() {
+            document.getElementById('ocr-panel').classList.remove('flex');
+            document.getElementById('ocr-panel').classList.add('hidden');
+        }
+
+        function simulateOCRScan() {
+            document.getElementById('scanner-status').classList.add('hidden');
+            const preview = document.getElementById('ocr-preview-img');
+            preview.src = "https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?q=80&w=300&auto=format&fit=crop";
+            preview.style.opacity = '0.7';
+
+            const laser = document.getElementById('laser-line');
+            laser.classList.remove('hidden');
+
+            setTimeout(() => {
+                laser.classList.add('hidden');
+                closeOCR();
+                
+                const items = [
+                    { amount: 5000, memo: "明洞純豆腐 / BBQ", type: "out" },
+                    { amount: 1500, memo: "便利店 (7-11/CU) 零食", type: "out" },
+                    { amount: 350, memo: "地鐵交通卡充值", type: "in" }
+                ];
+                const selected = items[Math.floor(Math.random() * items.length)];
+
+                openConfirmModal("📷 影單自動抓取結果", selected.amount, selected.type, selected.memo, activeWalletId);
+            }, 2500); 
+        }
+
+        async function handleFileOCR(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            document.getElementById('scanner-status').classList.add('hidden');
+            var preview = document.getElementById('ocr-preview-img');
+            preview.src = URL.createObjectURL(file);
+            preview.style.opacity = '0.7';
+            var laser = document.getElementById('laser-line');
+            laser.classList.remove('hidden');
+            document.getElementById('ocr-status-text').innerText = '正在識別收據文字...';
+            
+            try {
+                // Preprocess image on canvas
+                var img = new Image();
+                await new Promise(function(resolve) { img.onload = resolve; img.src = preview.src; });
+                var canvas = document.createElement('canvas');
+                var w = img.naturalWidth, h = img.naturalHeight;
+                if (w > 1200) { h = Math.round(h * 1200 / w); w = 1200; }
+                canvas.width = w; canvas.height = h;
+                var ctx = canvas.getContext('2d');
+                ctx.filter = 'contrast(1.3) brightness(1.05)';
+                ctx.drawImage(img, 0, 0, w, h);
+                
+                // Tesseract OCR
+                var worker = await Tesseract.createWorker('chi_tra+eng', 1);
+                var result = await worker.recognize(canvas);
+                var text = result.data.text;
+                await worker.terminate();
+                
+                laser.classList.add('hidden');
+                // Extract amount from OCR text
+                var amount = null;
+                var patterns = [/(?:總計|合計|TOTAL|Total|Amount\s*Due|應付|應收)[:\s]*[$¥NT$€£]?\s*(\d+[.,]\d{2})/i, /(?:BALANCE|Balance)[:\s]*[$¥NT$€£]?\s*(\d+[.,]\d{2})/i];
+                for (var pi = 0; pi < patterns.length; pi++) {
+                    var m = text.match(patterns[pi]);
+                    if (m) { amount = parseFloat(m[1].replace(',', '')); break; }
+                }
+                if (amount === null) {
+                    var all = [], re = /[$¥NT$€£]?\s*(\d+[.,]\d{2})/g, mm;
+                    while ((mm = re.exec(text)) !== null) all.push(parseFloat(mm[1].replace(',', '')));
+                    if (all.length > 0) amount = Math.max.apply(null, all);
+                }
+                
+                closeOCR();
+                if (amount) {
+                    openConfirmModal('📷 收據辨識結果', amount, 'out', text.slice(0, 30).replace(/[\n\r]/g, ' ') || '收據支出', activeWalletId);
+                } else {
+                    openConfirmModal('📷 收據辨識', 0, 'out', '未能識別金額，請手動輸入', activeWalletId);
+                }
+            } catch(e) {
+                laser.classList.add('hidden');
+                closeOCR();
+                openConfirmModal('📷 收據辨識', 0, 'out', 'OCR 處理失敗，請手動輸入', activeWalletId);
+            }
+        }
+
+        // 9. 智能解析彈出確認層
+        let currentConfirmData = null;
+
+        function openConfirmModal(source, amount, type, memo, walletId) {
+            currentConfirmData = { amount, type, memo, walletId };
+            
+            document.getElementById('confirm-source-title').innerText = source;
+            document.getElementById('confirm-amount').innerText = `${fmtCur(amount)}`;
+            document.getElementById('confirm-amount').style.color = type === 'out' ? '#352900' : '#10a37f';
+            
+            const confirmType = document.getElementById('confirm-type');
+            confirmType.innerText = type === 'out' ? '支出' : '收入';
+            confirmType.style.backgroundColor = type === 'out' ? '#F5D6FF' : '#E7F3EC';
+
+            document.getElementById('confirm-memo').value = memo;
+
+            const select = document.getElementById('confirm-wallet-select');
+            select.innerHTML = '';
+            wallets.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w.id;
+                opt.innerText = w.name;
+                opt.selected = w.id === walletId;
+                select.appendChild(opt);
+            });
+
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal(confirm) {
+            if (confirm && currentConfirmData) {
+                const select = document.getElementById('confirm-wallet-select');
+                const selectedWalletId = select.value;
+                const finalMemo = document.getElementById('confirm-memo').value.trim() || '未定義備註';
+                
+                addTransaction(selectedWalletId, currentConfirmData.type, currentConfirmData.amount, finalMemo);
+                showToast("入帳記錄已儲存！");
+            }
+            document.getElementById('confirm-modal').classList.add('hidden');
+            currentConfirmData = null;
+        }
+
+        function addTransaction(walletId, type, amount, memo) {
+            const newTx = {
+                id: 'tx_' + Date.now(),
+                walletId: walletId,
+                type: type,
+                amount: amount,
+                memo: memo,
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toTimeString().slice(0, 5)
+            };
+
+            transactions.unshift(newTx); computeBalances();
+            saveData();
+            renderWallets();
+            renderHistoryList();
+            renderCalendar();
+        }
+
+        // 10. 日曆面板對帳對應邏輯 (Calendar Logic)
+        function toggleCalendarView() {
+            const panel = document.getElementById('calendar-panel');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                renderCalendar();
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+
+        function renderCalendar() {
+            const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+            document.getElementById('calendar-month-year').innerText = `${currentYear}年 ${monthNames[currentMonth]}`;
+
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            // Auto-reset selectedDay to current month if it belongs to a different month
+            var currentMonthStr = currentYear + '-' + String(currentMonth + 1).padStart(2, '0');
+            if (selectedDay.substring(0, 7) !== currentMonthStr) {
+                selectedDay = currentMonthStr + '-01';
+            }
+
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                grid.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                const tempDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                dayCell.className = 'py-2 relative flex flex-col items-center justify-center cursor-pointer rounded-full hover:bg-[#352900]/5 transition-all';
+                dayCell.onclick = () => selectCalendarDay(tempDateStr);
+
+                if (tempDateStr === selectedDay) {
+                    dayCell.className += ' bg-[#352900] text-white';
+                }
+
+                const dayTxs = transactions.filter(t => t.date === tempDateStr);
+                let dotHtml = '';
+                if (dayTxs.length > 0) {
+                    const hasOut = dayTxs.some(t => t.type === 'out');
+                    const hasIn = dayTxs.some(t => t.type === 'in');
+                    if (hasOut && hasIn) {
+                        dotHtml = `<span class="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-[#FFBC54]"></span>`;
+                    } else if (hasOut) {
+                        dotHtml = `<span class="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-[#D0A198]"></span>`;
+                    } else {
+                        dotHtml = `<span class="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-[#D2DDD4]"></span>`;
+                    }
+                }
+
+                dayCell.innerHTML = `
+                    <span>${day}</span>
+                    ${dotHtml}
+                `;
+                grid.appendChild(dayCell);
+            }
+
+            selectCalendarDay(selectedDay);
+            updateTodaySummary();
+            // Render spending chart
+            const chartCanvas = document.getElementById('spend-chart');
+            if (chartCanvas) {
+                if (window._chart) { window._chart.destroy(); window._chart = null; }
+                const ctx = chartCanvas.getContext('2d');
+                chartCanvas.style.display = 'block';
+                const prefix = currentYear + '-' + String(currentMonth + 1).padStart(2, '0');
+                const monthTxs = transactions.filter(t => t.date.startsWith(prefix) && t.type === 'out');
+                const emptyEl = document.getElementById('chart-empty');
+                if (monthTxs.length === 0) {
+                    if(emptyEl) emptyEl.style.display = 'block';
+                    chartCanvas.style.display = 'none';
+                } else {
+                    if(emptyEl) emptyEl.style.display = 'none';
+                    const byCat = {};
+                    monthTxs.forEach(t => { const k = t.memo.slice(0, 8); byCat[k] = (byCat[k] || 0) + t.amount; });
+                    const labels = Object.keys(byCat), data = Object.values(byCat);
+                    const colors = ['#F5D6FF','#FFBC54','#AEB7FF','#C2B500','#D0A198','#D2DDD4'];
+                    window._chart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: { labels, datasets: [{ data, backgroundColor: colors.slice(0, labels.length), borderColor: 'white', borderWidth: 2, borderRadius: 4 }] },
+                        options: { cutout: '65%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                    });
+                }
+            }
+        }
+
+        function selectCalendarDay(dateStr) {
+            selectedDay = dateStr;
+            renderCalendarOnlyGrid();
+            document.getElementById('selected-day-label').innerText = `${dateStr} 流水明細`;
+
+            const list = document.getElementById('selected-day-list');
+            list.innerHTML = '';
+
+            const dayTxs = transactions.filter(t => t.date === dateStr);
+            if (dayTxs.length === 0) {
+                list.innerHTML = `<div class="text-center py-6 text-[10px] text-[#352900]/30 font-bold">是日無任何花費記錄</div>`;
+                return;
+            }
+
+            dayTxs.forEach(tx => {
+                const wallet = wallets.find(w => w.id === tx.walletId);
+                const txColor = tx.type === 'out' ? '#D0A198' : '#D2DDD4';
+                
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center p-2.5 rounded-xl bg-[#ECEBE4] text-xs hairline-border';
+                item.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: ${txColor}"></span>
+                        <div>
+                            <p class="font-bold text-[#352900]">${tx.memo}</p>
+                            <p class="text-[9px] text-[#352900]/40">${wallet ? wallet.name : 'WowPass'} ‧ ${tx.time}</p>
+                        </div>
+                    </div>
+                    <span class="font-black ${tx.type === 'out' ? 'text-[#352900]' : 'text-[#10a37f]'}">
+                        ${tx.type === 'out' ? '-' : '+'} ${tx.amount}
+                    </span>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function renderCalendarOnlyGrid() {
+            const grid = document.getElementById('calendar-grid');
+            const children = grid.children;
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+
+            for (let i = 0; i < children.length; i++) {
+                const day = i + 1 - firstDay;
+                if (day > 0) {
+                    const tempDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    if (tempDateStr === selectedDay) {
+                        children[i].className = 'py-2 relative flex flex-col items-center justify-between cursor-pointer rounded-full bg-[#352900] text-white';
+                    } else {
+                        children[i].className = 'py-2 relative flex flex-col items-center justify-between cursor-pointer rounded-xl hover:bg-[#352900]/5 text-[#352900] transition-all';
+                    }
+                }
+            }
+        }
+
+        function prevMonth() { currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderCalendar(); }
+        function nextMonth() { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderCalendar(); }
+        
+        function setCalendarView(mode) {
+            calendarViewMode = mode;
+            document.getElementById('view-month').className = mode === 'month' ? 'text-[10px] px-3 py-1 rounded-full font-bold bg-[#352900] text-white' : 'text-[10px] px-3 py-1 rounded-full font-bold bg-white text-[#352900] border border-[#352900]/10';
+            document.getElementById('view-week').className = mode === 'week' ? 'text-[10px] px-3 py-1 rounded-full font-bold bg-[#352900] text-white' : 'text-[10px] px-3 py-1 rounded-full font-bold bg-white text-[#352900] border border-[#352900]/10';
+            renderCalendar();
+        }
+        function updateTodaySummary() {
+            try {
+                var day = selectedDay;
+                var el = document.getElementById('today-date-label'); if (el) el.textContent = day;
+                var txs = transactions.filter(function(t) { return t.date === day; });
+                var inc = txs.filter(function(t) { return t.type === 'in'; }).reduce(function(s, t) { return s + t.amount; }, 0);
+                var exp = txs.filter(function(t) { return t.type === 'out'; }).reduce(function(s, t) { return s + t.amount; }, 0);
+                el = document.getElementById('today-income'); if (el) el.textContent = fmtCur(inc);
+                el = document.getElementById('today-expense'); if (el) el.textContent = fmtCur(exp);
+            } catch(e) {}
+        }
+        function paraphraseVoice(text) {
+            let cleaned = text
+                .replace(/[0-9零一二三四五六七八九十百千萬万佰]+/g, '')
+                .replace(/[\s]*[元蚊塊块文銀港紙臺幣台幣]$[\s]*/g, '')
+                .replace(/用[咗左了]|使[咗左了]|花[咗左了]|買[咗左了]|俾[咗左了]|比[咗左了]/g, '')
+                .replace(/[，。！？、\s]+/g, ' ')
+                .trim();
+            const buyMatch = text.match(/(?:買|去|食|飲)(?:[咗左了])?\s*(.+)/);
+            if (buyMatch) cleaned = buyMatch[1].replace(/[\d\s元蚊塊块一二三四五六七八九十百千萬万]+/g, '').trim();
+            if (!cleaned || cleaned.length < 2) cleaned = text.replace(/[\d\s元蚊塊块一二三四五六七八九十百千萬万]+/g, '').trim().slice(0, 20);
+            return cleaned || i18n('語音記帳', 'Voice Entry');
+        }
+
+        function saveData() { computeBalances(); localStorage.setItem(userKey('wallets'), JSON.stringify(wallets)); localStorage.setItem(userKey('txs'), JSON.stringify(transactions)); }
+
+
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+        }
+    </script>
+</body>
+</html>
