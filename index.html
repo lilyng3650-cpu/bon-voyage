@@ -1288,7 +1288,7 @@
                     if (recognition.lang === 'yue-HK') { recognition.lang = 'zh-HK'; try { recognition.start(); } catch(e) {} return; }
                     if (recognition.lang === 'zh-HK') { recognition.lang = 'zh-TW'; try { recognition.start(); } catch(e) {} return; }
                 }
-                document.getElementById('voice-interim-text').innerText = '語音錯誤: ' + event.error;
+                if (event.error === 'service-not-allowed' || event.error === 'not-allowed') { document.getElementById('voice-interim-text').innerHTML = '瀏覽器不支援語音<br><span style=font-size:11px;opacity:0.6>請用下方快捷模擬 或 改用 Chrome</span>'; document.getElementById('btn-vstop').classList.add('hidden'); } else { document.getElementById('voice-interim-text').innerText = '語音錯誤: ' + event.error; }
                 document.getElementById('btn-vstop').classList.add('hidden');
             };
             recognition.onend = function() {
