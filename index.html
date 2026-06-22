@@ -1266,10 +1266,12 @@
             document.getElementById('voice-panel').classList.remove('hidden');
             document.getElementById('voice-panel').classList.add('flex');
             document.getElementById('voice-result-panel').classList.add('hidden');
-            document.getElementById('voice-type-fallback').style.display = 'block';
-            document.getElementById('voice-interim-text').innerText = '打字或者點鍵盤 🎤 咪講嘢';
-            document.getElementById('voice-type-input').value = '';
-            setTimeout(function(){ document.getElementById('voice-type-input').focus(); }, 400);
+            document.getElementById('voice-quick-actions').classList.remove('hidden');
+            document.getElementById('btn-vstop').classList.remove('hidden');
+            voiceFinalText = '';
+            document.getElementById('voice-interim-text').innerText = '聆聽中，請講話...';
+            document.getElementById('voice-example').innerText = '「用咗五千蚊買 Daiso 化妝品」';
+            startVoiceRecognition();
         }
 
         function startVoiceRecognition() {
