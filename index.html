@@ -306,7 +306,7 @@
         </div>
 
         <!-- 2. 語音動態錄音面板 (Verbalize Panel) -->
-        <div id="voice-panel" class="absolute inset-0 bg-[#352900]/95 z-40 hidden flex-col justify-between p-8 text-[#FBFDF7]">
+        <div id="voice-panel" class="absolute inset-0 bg-[#352900]/95 z-40 hidden flex-col p-6 text-[#FBFDF7] overflow-y-auto">
             <div class="flex justify-between items-center">
                 <span class="text-xs font-bold tracking-widest text-[#FBFDF7]/50 uppercase">🎙️ 語音偵測中...</span>
                 <button onclick="closeVoicePanel()" class="w-8 h-8 rounded-full bg-white/10 text-white flex justify-center items-center"><i class="fa-solid fa-xmark text-sm"></i></button>
@@ -1321,6 +1321,9 @@
         }
 
         function showVoiceResult(rawText) {
+            document.getElementById('voice-quick-actions').classList.add('hidden');
+            document.getElementById('voice-type-fallback').style.display = 'none';
+            document.getElementById('voice-interim-text').style.display = 'none';
             document.getElementById('voice-result-panel').classList.remove('hidden');
             document.getElementById('voice-raw-text').textContent = '"' + rawText + '"';
             var amount = parseChineseAndArabicNumbers(rawText);
