@@ -324,6 +324,12 @@
 
                 <div class="text-center px-4 space-y-2">
                     <p class="text-lg font-medium" id="voice-interim-text">請大聲說出，例如：</p>
+                    <!-- iOS/Keyboard dictation fallback -->
+                    <div id="voice-type-fallback" style="display:none;width:100%">
+                        <p class="text-xs opacity-50 mb-2">語音不支援？喺下面打字或者用鍵盤咪高峰</p>
+                        <input type="text" id="voice-type-input" placeholder="喺度打字，或者點鍵盤個🎤咪" style="width:100%;padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-size:0.9rem;text-align:center;outline:none;font-family:inherit">
+                        <button onclick="parseTypedVoice()" style="width:100%;margin-top:8px;padding:10px;border-radius:14px;border:none;background:#F5D6FF;color:#352900;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:inherit">確認輸入</button>
+                    </div>
                     <button id="btn-vstop" onclick="stopVoiceManual()" class="w-full py-2.5 rounded-xl font-bold text-xs bg-[#D0A198] text-white mb-3 hidden">點擊停止聆聽</button>
                     <p class="text-sm opacity-60 italic" id="voice-example">「用咗五千蚊買 Daiso 化妝品」</p>
                 </div>
@@ -1347,6 +1353,15 @@
             document.getElementById('btn-vstop').classList.remove('hidden');
             document.getElementById('voice-interim-text').innerText = '聆聽中，請講話...';
             startVoiceRecognition();
+        }
+
+        
+        function parseTypedVoice() {
+            var text = document.getElementById('voice-type-input').value.trim();
+            if (!text) { showToast('請輸入文字'); return; }
+            voiceFinalText = text;
+            showVoiceResult(text);
+            document.getElementById('voice-type-input').value = '';
         }
 
         function simulateVoice(text) {
