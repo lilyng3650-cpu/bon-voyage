@@ -112,6 +112,16 @@
             background: #D0A198; color: #fff; font-size: 10px; font-weight: 700;
             width: 0; overflow: hidden; transition: width 0.3s; z-index: 0;
         }
+
+        .quick-menu{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);opacity:0;pointer-events:none;transition:opacity 0.2s}
+        .quick-menu.on{opacity:1;pointer-events:auto}
+        .quick-menu .btns{display:flex;gap:16px}
+        .quick-menu .btn{width:80px;height:80px;border-radius:24px;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:0.68rem;font-weight:700;cursor:pointer;color:#fff;font-family:inherit;transition:transform 0.15s}
+        .quick-menu .btn:active{transform:scale(0.9)}
+        .quick-menu .btn.calc{background:#352900}
+        .quick-menu .btn.voice{background:#5c5346}
+        .quick-menu .btn.ocr{background:#9c9286}
+
 </style>
 </head>
 <body class="flex justify-center items-center min-h-screen p-0">
@@ -185,7 +195,7 @@
             </div>
 
             <!-- 核心 HOLD 大按鈕 -->
-            <div id="hold-trigger" onclick="openCalculator()"
+            <div id="hold-trigger" onclick="showQuickMenu()"
                  class="w-28 h-28 rounded-full bg-[#FBFDF7] border-4 border-[#352900] shadow-[0_12px_45px_rgba(53,41,0,0.12)] flex justify-center items-center relative z-20 cursor-pointer transition-all duration-200 select-none">
                 <div class="w-22 h-22 rounded-full bg-[#352900] flex flex-col justify-center items-center text-[#FBFDF7] shadow-inner transition-transform duration-200">
                     <i class="fa-solid fa-fingerprint text-2xl mb-1"></i>
@@ -1160,6 +1170,10 @@
         }
 
         // 6. 仿 iCourse 極簡計算機操作邏輯
+        
+        function showQuickMenu() { document.getElementById('quick-menu').classList.add('on'); }
+        function hideQuickMenu() { document.getElementById('quick-menu').classList.remove('on'); }
+
         function openCalculator() {
             const wallet = wallets.find(w => w.id === activeWalletId);
             document.getElementById('calc-wallet-label').innerText = `目前記錄至: ${wallet ? wallet.name : 'WowPass'}`;
