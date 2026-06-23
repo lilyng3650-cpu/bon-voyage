@@ -1220,7 +1220,41 @@
             document.getElementById('voice-panel').classList.add('flex');
             document.getElementById('voice-type-input').value = '';
             updateVoiceWallet();
-            setTimeout(function(){ document.getElementById('voice-type-input').focus(); }, 400);
+            // Try Web Speech API first
+            var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SR) {
+                document.getElementById('voice-type-input').placeholder = '聆聽中...請講嘢';
+                startVoiceRecognition();
+            } else {
+                document.getElementById('voice-type-input').placeholder = '點鍵盤 🎤 咪講嘢';
+                document.getElementById('voice-type-input').focus();
+            }
+        }
+
+        function startVoiceRecognition() {
+            var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) return;
+            if (window._vRec) { try { window._vRec.stop(); } catch(e) {} }
+            var r = new SR();
+            r.lang = 'yue-HK';
+            r.continuous = false;
+            r.interimResults = false;
+            r.onresult = function(e) {
+                var text = e.results[0][0].transcript;
+                document.getElementById('voice-type-input').value = text;
+                showVoiceResult(text);
+            };
+            r.onerror = function(e) {
+                if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+                    document.getElementById('voice-type-input').placeholder = '點鍵盤 🎤 咪講嘢';
+                    document.getElementById('voice-type-input').focus();
+                }
+            };
+            r.onend = function() {};
+            window._vRec = r;
+            try { r.start(); } catch(e) {
+                document.getElementById('voice-type-input').focus();
+            }
         }
 
         function startVoiceRecognition() {
@@ -1304,6 +1338,7 @@
 
         
         function parseTypedVoice() {
+            if (window._vRec) { try { window._vRec.stop(); } catch(e) {} }
             var text = document.getElementById('voice-type-input').value.trim();
             if (!text) { showToast('請輸入文字'); return; }
             showVoiceResult(text);
@@ -1317,6 +1352,7 @@
         }
 
         function closeVoicePanel() {
+            if (window._vRec) { try { window._vRec.stop(); } catch(e) {} }
             document.getElementById('voice-panel').classList.remove('flex');
             document.getElementById('voice-panel').classList.add('hidden');
         }
